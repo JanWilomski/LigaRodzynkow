@@ -47,7 +47,7 @@ export interface CreateGameDto {
 // ==========================================
 
 // Używamy portu 5004 z launchSettings.json (lub 8080 z Dockera - podmień jeśli trzeba)
-const BASE_URL = 'ligarodzynkow.azurewebsites.net';
+const BASE_URL = 'https://ligarodzynkow.azurewebsites.net/api';
 
 /**
  * Pomocnicza funkcja do obsługi odpowiedzi.

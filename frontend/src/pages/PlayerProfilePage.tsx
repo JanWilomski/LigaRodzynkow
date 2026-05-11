@@ -1,9 +1,9 @@
 ﻿import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 
 export function PlayerProfilePage() {
@@ -15,14 +15,19 @@ export function PlayerProfilePage() {
 
     if (isLoading || !p) return <div className="p-8 text-center text-[var(--color-muted)] font-mono">Wczytywanie profilu...</div>
 
-    // Sortowanie dla "Najlepszy/Najgorszy" partner i rywal
+    // Obliczanie statystyk relacji
     const bestPartner = [...p.partners].sort((a, b) => b.winrate - a.winrate || b.gamesTogether - a.gamesTogether)[0]
     const worstPartner = [...p.partners].sort((a, b) => a.winrate - b.winrate || b.gamesTogether - a.gamesTogether)[0]
-    const toughestOpponent = [...p.opponents].sort((a, b) => a.winrate - b.winrate)[0]
+
+    // Najtrudniejszy przeciwnik (najniższy winrate gracza przeciwko niemu)
+    const toughestOpponent = [...p.opponents].sort((a, b) => a.winrate - b.winrate || b.gamesTogether - a.gamesTogether)[0]
+
+    // Najłatwiejszy przeciwnik (najwyższy winrate gracza przeciwko niemu)
+    const easiestOpponent = [...p.opponents].sort((a, b) => b.winrate - a.winrate || b.gamesTogether - a.gamesTogether)[0]
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header / Hero Section */}
+            {/* Header / Hero (bez zmian) */}
             <div className="flex flex-col md:flex-row gap-6 items-center bg-[var(--color-surface)] p-8 rounded-xl border border-[var(--color-border)] shadow-sm">
                 <Avatar name={p.name} size="lg" className="size-24 text-2xl" />
                 <div className="text-center md:text-left flex-1">
@@ -37,7 +42,6 @@ export function PlayerProfilePage() {
                     </div>
                 </div>
 
-                {/* Serie zwycięstw */}
                 <div className="flex gap-3">
                     <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-lg text-center min-w-[100px]">
                         <Flame className="size-5 text-orange-500 mx-auto mb-1" />
@@ -52,8 +56,8 @@ export function PlayerProfilePage() {
                 </div>
             </div>
 
-            {/* Grid statystyk dodatkowych */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Grid statystyk dodatkowych - Teraz 4 karty */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Najlepszy Partner"
                     icon={<UserPlus className="text-[var(--color-success)] size-4" />}
@@ -80,7 +84,7 @@ export function PlayerProfilePage() {
                 />
             </div>
 
-            {/* Sekcja: Historia meczów na profilu */}
+            {/* Sekcja: Historia meczów (bez zmian) */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -91,7 +95,7 @@ export function PlayerProfilePage() {
                 <CardContent className="p-0">
                     <div className="divide-y divide-[var(--color-border)]">
                         {p.recentGames && p.recentGames.length > 0 ? (
-                            p.recentGames.map(game => (
+                            p.recentGames.map((game: Game) => (
                                 <div key={game.id} className="flex items-center justify-between px-6 py-4 hover:bg-[var(--color-surface-elevated)] transition-colors">
                                     <div className="flex items-center gap-6">
                                         <div className="text-lg font-black tabular min-w-[80px]">
@@ -104,13 +108,13 @@ export function PlayerProfilePage() {
                                         </div>
                                     </div>
                                     <div className="text-[10px] text-[var(--color-subtle)] uppercase font-black tracking-widest">
-                                        {game.teamA.some(x => x.id === p.id) ? "Drużyna A" : "Drużyna B"}
+                                        {game.teamA.some((x: GamePlayer) => x.id === p.id) ? "Drużyna A" : "Drużyna B"}
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="py-12 text-center text-sm text-[var(--color-muted)] font-mono">
-                                Brak zarejestrowanych meczów dla tego zawodnika.
+                                Brak zarejestrowanych meczów.
                             </div>
                         )}
                     </div>
@@ -122,7 +126,7 @@ export function PlayerProfilePage() {
 
 function StatCard({ title, name, sub, icon }: { title: string, name?: string, sub: string, icon: React.ReactNode }) {
     return (
-        <Card className="p-5 border-dashed bg-transparent border-[var(--color-border)]">
+        <Card className="p-5 border-dashed bg-transparent border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors">
             <div className="flex items-center gap-3 mb-3">
                 {icon}
                 <span className="text-[10px] uppercase font-black text-[var(--color-muted)] tracking-widest">{title}</span>

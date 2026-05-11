@@ -63,7 +63,7 @@ export function Layout() {
 
         {/* Footer */}
         <footer className="mt-16 pt-6 border-t border-[var(--color-border)] text-xs text-[var(--color-subtle)] text-center font-mono">
-          v0.1.0 · mock data
+          v0.1.0 · Arek cwel
         </footer>
       </div>
     </div>

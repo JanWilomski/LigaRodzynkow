@@ -98,4 +98,80 @@ public class PlayersController : ControllerBase
 
         return NoContent();
     }
+    
+    [HttpGet("{id:guid}/profile")]
+    public async Task<ActionResult<PlayerProfileDto>> GetPlayerProfile(Guid id)
+    {
+        var player = await _context.Players
+            .Include(p => p.GamePlayers)
+            .ThenInclude(gp => gp.Game)
+            .ThenInclude(g => g.GamePlayers)
+            .ThenInclude(gp => gp.Player)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (player == null) return NotFound();
+
+        var games = player.GamePlayers
+            .OrderByDescending(gp => gp.Game.PlayedAt)
+            .ToList();
+
+        // 1. Obliczanie serii (Streaks)
+        int currentStreak = 0;
+        int longestStreak = 0;
+        int tempStreak = 0;
+
+        foreach (var gp in games.OrderBy(x => x.Game.PlayedAt))
+        {
+            bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                       (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+            if (won) {
+                tempStreak++;
+                longestStreak = Math.Max(longestStreak, tempStreak);
+            } else {
+                tempStreak = 0;
+            }
+        }
+        
+        // Aktulna seria (od końca)
+        foreach (var gp in games) {
+            bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                       (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+            if (won) currentStreak++; else break;
+        }
+
+        // 2. Analiza partnerów i przeciwników
+        var partnerStats = new Dictionary<Guid, (string Name, int Played, int Won)>();
+        var opponentStats = new Dictionary<Guid, (string Name, int Played, int Won)>();
+
+        foreach (var gp in games)
+        {
+            bool playerWon = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                             (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+
+            foreach (var otherGp in gp.Game.GamePlayers.Where(x => x.PlayerId != id))
+            {
+                var dict = (otherGp.Team == gp.Team) ? partnerStats : opponentStats;
+                if (!dict.ContainsKey(otherGp.PlayerId)) 
+                    dict[otherGp.PlayerId] = (otherGp.Player.Name, 0, 0);
+
+                var s = dict[otherGp.PlayerId];
+                dict[otherGp.PlayerId] = (s.Name, s.Played + 1, playerWon ? s.Won + 1 : s.Won);
+            }
+        }
+
+        var result = new PlayerProfileDto(
+            player.Id,
+            player.Name,
+            games.Count,
+            games.Count(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) || (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)),
+            games.Count > 0 ? (double)games.Count(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) || (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)) / games.Count : 0,
+            currentStreak,
+            longestStreak,
+            new List<GameDto>(), // Tu można zmapować ostatnie gry używając logiki z GamesController
+            partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
+            opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList()
+        );
+
+        return Ok(result);
+    }
 }

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom' // Dodano Link do nawigacji
 import { api } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { formatPercent, cn } from '@/lib/utils'
@@ -42,17 +43,17 @@ export function RankingPage() {
                     accent
                 >
                     {leader && (
-                        <div className="flex items-center gap-3">
+                        <Link to={`/players/${leader.playerId}`} className="flex items-center gap-3 group">
                             <Avatar name={leader.playerName} size="lg" />
                             <div className="min-w-0">
-                                <div className="text-2xl font-bold text-[var(--color-foreground)] truncate">
+                                <div className="text-2xl font-bold text-[var(--color-foreground)] truncate group-hover:text-[var(--color-accent)] transition-colors">
                                     {leader.playerName}
                                 </div>
                                 <div className="text-sm text-[var(--color-muted)] tabular">
                                     {formatPercent(leader.winrate)} · {leader.gamesWon}W
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     )}
                 </StatHero>
 
@@ -61,17 +62,17 @@ export function RankingPage() {
                     icon={<Activity className="size-4" />}
                 >
                     {mostActive && (
-                        <div className="flex items-center gap-3">
+                        <Link to={`/players/${mostActive.playerId}`} className="flex items-center gap-3 group">
                             <Avatar name={mostActive.playerName} size="lg" />
                             <div className="min-w-0">
-                                <div className="text-2xl font-bold text-[var(--color-foreground)] truncate">
+                                <div className="text-2xl font-bold text-[var(--color-foreground)] truncate group-hover:text-[var(--color-accent)] transition-colors">
                                     {mostActive.playerName}
                                 </div>
                                 <div className="text-sm text-[var(--color-muted)] tabular">
                                     {mostActive.gamesPlayed} rozegranych
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     )}
                 </StatHero>
 
@@ -90,6 +91,7 @@ export function RankingPage() {
                 </StatHero>
             </div>
 
+            {/* SEKCJA: Zabójcze Duety */}
             {duos && duos.length > 0 && (
                 <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <h3 className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--color-muted)] mb-4 flex items-center gap-2">
@@ -177,12 +179,12 @@ function RankingRow({ standing }: { standing: NonNullable<ReturnType<typeof useS
                 </div>
             </td>
             <td className="px-3 py-4">
-                <div className="flex items-center gap-3">
+                <Link to={`/players/${standing.playerId}`} className="flex items-center gap-3 group">
                     <Avatar name={standing.playerName} size="sm" />
-                    <span className={cn('text-sm', isTop3 ? 'font-semibold' : 'font-medium')}>
-            {standing.playerName}
-          </span>
-                </div>
+                    <span className={cn('text-sm transition-colors group-hover:text-[var(--color-accent)]', isTop3 ? 'font-semibold' : 'font-medium')}>
+                        {standing.playerName}
+                    </span>
+                </Link>
             </td>
             <td className="px-3 py-4 text-right text-sm text-[var(--color-muted)] tabular">
                 {standing.gamesPlayed}

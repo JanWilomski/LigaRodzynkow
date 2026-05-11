@@ -5,6 +5,7 @@ import { RankingPage } from '@/pages/RankingPage'
 import { PlayersPage } from '@/pages/PlayersPage'
 import { HistoryPage } from '@/pages/HistoryPage'
 import DrawPage from "@/pages/DrawPage"
+import { PlayerProfilePage } from "@/pages/PlayerProfilePage"
 import { ToastProvider } from '@/components/ui/Toast'
 
 const queryClient = new QueryClient({
@@ -27,6 +28,7 @@ export function App() {
               <Route path="players" element={<PlayersPage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="draw" element={<DrawPage />} />
+              <Route path="players/:id" element={<PlayerProfilePage />} />
             </Route>
           </Routes>
         </BrowserRouter>

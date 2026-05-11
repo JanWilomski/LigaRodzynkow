@@ -50,6 +50,27 @@ export interface DuoStanding {
     winrate: number;
 }
 
+export interface PlayerProfile {
+    id: string;
+    name: string;
+    gamesPlayed: number;
+    gamesWon: number;
+    winrate: number;
+    currentStreak: number;
+    longestStreak: number;
+    partners: EntityStat[];
+    opponents: EntityStat[];
+}
+
+export interface EntityStat {
+    playerId: string;
+    name: string;
+    gamesTogether: number;
+    gamesWon: number;
+    winrate: number;
+}
+
+
 // ==========================================
 // KONFIGURACJA API
 // ==========================================
@@ -142,4 +163,7 @@ export const api = {
     getDuoStandings: (): Promise<DuoStanding[]> =>
         fetch(`${BASE_URL}/standings/duos`)
             .then(res => handleResponse<DuoStanding[]>(res)),
+    getPlayerProfile: (id: string): Promise<PlayerProfile> =>
+        fetch(`${BASE_URL}/players/${id}/profile`)
+            .then(res => handleResponse<PlayerProfile>(res)),
 };

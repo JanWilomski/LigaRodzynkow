@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocation, Link } from 'react-router-dom' // Dodano useLocation i Link
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -10,6 +11,7 @@ import { formatRelativeTime, cn } from '@/lib/utils'
 export function HistoryPage() {
     const { show } = useToast()
     const queryClient = useQueryClient()
+    const location = useLocation() // Pobieramy stan nawigacji
 
     const { data: games, isLoading } = useQuery({
         queryKey: ['games', 50],
@@ -26,11 +28,31 @@ export function HistoryPage() {
     const [teamAIds, setTeamAIds] = useState<string[]>([])
     const [teamBIds, setTeamBIds] = useState<string[]>([])
 
+    // EFEKT: Odbieranie wylosowanych składów z DrawPage
+    useEffect(() => {
+        const state = location.state as { teamAIds?: string[], teamBIds?: string[] } | null;
+
+        if (state?.teamAIds && state?.teamBIds) {
+            setTeamAIds(state.teamAIds);
+            setTeamBIds(state.teamBIds);
+
+            show({
+                title: 'Składy wczytane',
+                description: 'Wylosowane drużyny zostały uzupełnione w formularzu.',
+                variant: 'success'
+            });
+
+            // Czyścimy stan, żeby po odświeżeniu nie pokazywało komunikatu ponownie
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state, show]);
+
     const createMutation = useMutation({
         mutationFn: api.createGame,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games'] })
             queryClient.invalidateQueries({ queryKey: ['standings'] })
+            queryClient.invalidateQueries({ queryKey: ['standings-duos'] })
             setTeamAScore('')
             setTeamBScore('')
             setTeamAIds([])
@@ -247,9 +269,13 @@ function GameRow({ game, onDelete }: GameRowProps) {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                     {game.teamA.map(p => (
-                        <span key={p.id} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)]">
-              {p.name}
-            </span>
+                        <Link
+                            key={p.id}
+                            to={`/players/${p.id}`}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors"
+                        >
+                            {p.name}
+                        </Link>
                     ))}
                 </div>
             </div>
@@ -266,9 +292,13 @@ function GameRow({ game, onDelete }: GameRowProps) {
                 </div>
                 <div className="flex flex-wrap justify-end gap-1.5">
                     {game.teamB.map(p => (
-                        <span key={p.id} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)]">
-              {p.name}
-            </span>
+                        <Link
+                            key={p.id}
+                            to={`/players/${p.id}`}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-[var(--color-accent)] transition-colors"
+                        >
+                            {p.name}
+                        </Link>
                     ))}
                 </div>
             </div>

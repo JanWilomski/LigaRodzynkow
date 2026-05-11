@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Trophy, Users, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Trophy, Users, History, Dices } from 'lucide-react'
 
 const tabs = [
   { to: '/', label: 'Ranking', icon: Trophy, exact: true },
+  { to: '/draw', label: 'Losowanie', icon: Dices },
   { to: '/players', label: 'Gracze', icon: Users },
   { to: '/history', label: 'Historia', icon: History },
 ]

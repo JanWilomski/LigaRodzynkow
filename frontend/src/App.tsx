@@ -19,7 +19,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/LigaRodzynkow">
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<RankingPage />} />

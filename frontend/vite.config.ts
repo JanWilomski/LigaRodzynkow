@@ -5,13 +5,10 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
+    base: '/LigaRodzynkow/', // <-- DODAJ TO: ścieżka musi zaczynać się i kończyć slashem
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./src"),
+        },
     },
-  },
-  server: {
-    port: 3000,
-    host: '0.0.0.0',
-  },
 })

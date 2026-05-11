@@ -1,223 +1,297 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getSets, getPlayers, createSet, deleteSet } from '@/lib/api'
-import { Avatar } from '@/components/ui/Avatar'
+import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
+import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { Plus, Trash2, ChevronRight, History as HistoryIcon } from 'lucide-react'
+import { Plus, Trash2, History as HistoryIcon } from 'lucide-react'
 import { formatRelativeTime, cn } from '@/lib/utils'
 
 export function HistoryPage() {
-  const { show } = useToast()
-  const queryClient = useQueryClient()
+    const { show } = useToast()
+    const queryClient = useQueryClient()
 
-  const { data: sets, isLoading } = useQuery({
-    queryKey: ['sets', 50],
-    queryFn: () => getSets(50),
-  })
+    const { data: games, isLoading } = useQuery({
+        queryKey: ['games', 50],
+        queryFn: () => api.getGames(50),
+    })
 
-  const { data: players } = useQuery({
-    queryKey: ['players'],
-    queryFn: getPlayers,
-  })
+    const { data: players } = useQuery({
+        queryKey: ['players'],
+        queryFn: api.getPlayers,
+    })
 
-  const [winnerId, setWinnerId] = useState('')
-  const [loserId, setLoserId] = useState('')
+    const [teamAScore, setTeamAScore] = useState<number | ''>('')
+    const [teamBScore, setTeamBScore] = useState<number | ''>('')
+    const [teamAIds, setTeamAIds] = useState<string[]>([])
+    const [teamBIds, setTeamBIds] = useState<string[]>([])
 
-  const createMutation = useMutation({
-    mutationFn: createSet,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sets'] })
-      queryClient.invalidateQueries({ queryKey: ['standings'] })
-      setWinnerId('')
-      setLoserId('')
-      show({ title: 'Set zapisany', variant: 'success' })
-    },
-    onError: (err: Error) => {
-      show({ title: 'Nie udało się zapisać', description: err.message, variant: 'error' })
-    },
-  })
+    const createMutation = useMutation({
+        mutationFn: api.createGame,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games'] })
+            queryClient.invalidateQueries({ queryKey: ['standings'] })
+            setTeamAScore('')
+            setTeamBScore('')
+            setTeamAIds([])
+            setTeamBIds([])
+            show({ title: 'Mecz został zapisany', variant: 'success' })
+        },
+        onError: (err: Error) => {
+            show({ title: 'Błąd walidacji', description: err.message, variant: 'error' })
+        },
+    })
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteSet,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sets'] })
-      queryClient.invalidateQueries({ queryKey: ['standings'] })
-      show({ title: 'Usunięto set', variant: 'success' })
-    },
-  })
+    const deleteMutation = useMutation({
+        mutationFn: api.deleteGame,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['games'] })
+            queryClient.invalidateQueries({ queryKey: ['standings'] })
+            show({ title: 'Usunięto mecz', variant: 'success' })
+        },
+        onError: (err: Error) => {
+            show({ title: 'Nie udało się usunąć', description: err.message, variant: 'error' })
+        }
+    })
 
-  const canSubmit = winnerId && loserId && winnerId !== loserId
-  const needsPlayers = !players || players.length < 2
+    const canSubmit =
+        typeof teamAScore === 'number' &&
+        typeof teamBScore === 'number' &&
+        teamAScore >= 0 &&
+        teamBScore >= 0 &&
+        teamAScore !== teamBScore &&
+        teamAIds.length > 0 &&
+        teamBIds.length > 0
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canSubmit) return
-    createMutation.mutate({ winnerId, loserId })
-  }
+    const needsPlayers = !players || players.length < 2
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Add set form */}
-      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <Plus className="size-4 text-[var(--color-accent)]" />
-            Dodaj wynik setu
-          </h2>
-          <p className="text-xs text-[var(--color-muted)] mt-0.5">
-            Wybierz zwycięzcę i przegranego. Wynik zostanie zapisany z aktualną datą.
-          </p>
-        </div>
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!canSubmit) return
+        createMutation.mutate({
+            teamAScore: Number(teamAScore),
+            teamBScore: Number(teamBScore),
+            teamAPlayerIds: teamAIds,
+            teamBPlayerIds: teamBIds,
+        })
+    }
 
-        <form onSubmit={handleSubmit} className="p-6">
-          {needsPlayers ? (
-            <p className="text-sm text-[var(--color-muted)] text-center py-2">
-              Potrzebujesz co najmniej 2 zawodników żeby dodać set.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-3 md:items-end">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--color-muted)] uppercase tracking-wider">
-                  Zwycięzca
-                </label>
-                <Select value={winnerId} onChange={(e) => setWinnerId(e.target.value)}>
-                  <option value="">Wybierz zawodnika</option>
-                  {players?.map((p) => (
-                    <option key={p.id} value={p.id} disabled={p.id === loserId}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+    const toggleTeamA = (id: string) => {
+        setTeamAIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
+        setTeamBIds((prev) => prev.filter((i) => i !== id))
+    }
 
-              <div className="hidden md:flex items-center justify-center pb-2.5 text-[var(--color-subtle)]">
-                <ChevronRight className="size-4" />
-              </div>
+    const toggleTeamB = (id: string) => {
+        setTeamBIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
+        setTeamAIds((prev) => prev.filter((i) => i !== id))
+    }
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--color-muted)] uppercase tracking-wider">
-                  Przegrany
-                </label>
-                <Select value={loserId} onChange={(e) => setLoserId(e.target.value)}>
-                  <option value="">Wybierz zawodnika</option>
-                  {players?.map((p) => (
-                    <option key={p.id} value={p.id} disabled={p.id === winnerId}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+    return (
+        <div className="space-y-6 animate-fade-in">
+            {/* Dodawanie meczu */}
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--color-border)]">
+                    <h2 className="text-base font-semibold flex items-center gap-2">
+                        <Plus className="size-4 text-[var(--color-accent)]" />
+                        Zarejestruj wynik seta
+                    </h2>
+                    <p className="text-xs text-[var(--color-muted)] mt-0.5">
+                        Wprowadź punkty i przypisz zawodników do drużyn.
+                    </p>
+                </div>
 
-              <Button type="submit" disabled={!canSubmit || createMutation.isPending}>
-                {createMutation.isPending ? 'Zapisywanie...' : 'Zapisz set'}
-              </Button>
+                <form onSubmit={handleSubmit} className="p-6">
+                    {needsPlayers ? (
+                        <p className="text-sm text-[var(--color-muted)] text-center py-2">
+                            Potrzebujesz co najmniej 2 zawodników w bazie żeby dodać set.
+                        </p>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Wyniki */}
+                            <div className="flex items-center justify-center gap-6">
+                                <div className="text-center">
+                                    <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-2 block tracking-wider">
+                                        Punkty Drużyny A
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={teamAScore}
+                                        onChange={(e) => setTeamAScore(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="w-24 text-center text-xl font-bold mx-auto"
+                                    />
+                                </div>
+                                <div className="text-2xl font-black text-[var(--color-subtle)] pt-6">:</div>
+                                <div className="text-center">
+                                    <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-2 block tracking-wider">
+                                        Punkty Drużyny B
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="0"
+                                        value={teamBScore}
+                                        onChange={(e) => setTeamBScore(e.target.value === '' ? '' : Number(e.target.value))}
+                                        className="w-24 text-center text-xl font-bold mx-auto"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Wybór składów */}
+                            <div>
+                                <label className="text-xs font-semibold text-[var(--color-muted)] uppercase mb-3 block tracking-wider text-center">
+                                    Przypisz zawodników do drużyn
+                                </label>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {players?.map((p) => {
+                                        const inA = teamAIds.includes(p.id)
+                                        const inB = teamBIds.includes(p.id)
+                                        return (
+                                            <div
+                                                key={p.id}
+                                                className="flex rounded-md overflow-hidden border border-[var(--color-border)] shadow-sm"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleTeamA(p.id)}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-bold transition-colors',
+                                                        inA ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)]'
+                                                    )}
+                                                >
+                                                    A
+                                                </button>
+                                                <div className="px-3 py-1.5 text-xs font-medium border-x border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex items-center">
+                                                    {p.name}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleTeamB(p.id)}
+                                                    className={cn(
+                                                        'px-3 py-1.5 text-xs font-bold transition-colors',
+                                                        inB ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)]'
+                                                    )}
+                                                >
+                                                    B
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-2 border-t border-[var(--color-border)]">
+                                <Button type="submit" disabled={!canSubmit || createMutation.isPending}>
+                                    {createMutation.isPending ? 'Zapisywanie...' : 'Zapisz wynik seta'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </form>
             </div>
-          )}
-        </form>
-      </div>
 
-      {/* History list */}
-      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[var(--color-border)]">
-          <h2 className="text-base font-semibold">Ostatnie sety</h2>
-          <p className="text-xs text-[var(--color-muted)] mt-0.5">
-            Pokazane do 50 ostatnich
-          </p>
+            {/* Historia meczów */}
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--color-border)]">
+                    <h2 className="text-base font-semibold">Ostatnie sety</h2>
+                    <p className="text-xs text-[var(--color-muted)] mt-0.5">Pokazane do 50 ostatnich</p>
+                </div>
+
+                {isLoading ? (
+                    <div className="p-4 space-y-2">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="h-16 rounded skeleton" />
+                        ))}
+                    </div>
+                ) : !games || games.length === 0 ? (
+                    <div className="py-16 text-center">
+                        <HistoryIcon className="mx-auto size-12 text-[var(--color-subtle)] mb-4" />
+                        <p className="text-sm text-[var(--color-muted)]">Brak rozegranych setów. Dodaj pierwszy powyżej.</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-[var(--color-border)]">
+                        {games.map((game) => (
+                            <GameRow
+                                key={game.id}
+                                game={game}
+                                onDelete={() => {
+                                    if (confirm('Usunąć bezpowrotnie ten set?')) {
+                                        deleteMutation.mutate(game.id)
+                                    }
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-
-        {isLoading ? (
-          <div className="p-4 space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-14 rounded skeleton" />
-            ))}
-          </div>
-        ) : !sets || sets.length === 0 ? (
-          <div className="py-16 text-center">
-            <HistoryIcon className="mx-auto size-12 text-[var(--color-subtle)] mb-4" />
-            <p className="text-sm text-[var(--color-muted)]">
-              Brak rozegranych setów. Dodaj pierwszy powyżej.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-[var(--color-border)]">
-            {sets.map((set) => (
-              <SetRow
-                key={set.id}
-                set={set}
-                onDelete={() => {
-                  if (confirm('Usunąć ten set?')) {
-                    deleteMutation.mutate(set.id)
-                  }
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+    )
 }
 
-interface SetRowProps {
-  set: NonNullable<ReturnType<typeof useSetsData>>[number]
-  onDelete: () => void
+interface GameRowProps {
+    game: NonNullable<ReturnType<typeof useGamesData>>[number]
+    onDelete: () => void
 }
 
-function SetRow({ set, onDelete }: SetRowProps) {
-  return (
-    <div className="group flex items-center gap-4 px-6 py-3 hover:bg-[var(--color-surface-elevated)] transition-colors">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <Avatar name={set.winnerName} size="md" />
-        <div className="min-w-0">
-          <div className="text-sm font-semibold truncate">{set.winnerName}</div>
-          <div className="text-[10px] uppercase tracking-wider text-[var(--color-success)] font-medium">
-            Wygrana
-          </div>
-        </div>
-      </div>
+function GameRow({ game, onDelete }: GameRowProps) {
+    const teamAWon = game.teamAScore > game.teamBScore
+    const teamBWon = game.teamBScore > game.teamAScore
 
-      <div
-        className={cn(
-          'shrink-0 px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider',
-          'bg-[var(--color-background)] text-[var(--color-subtle)] border border-[var(--color-border)]',
-        )}
-      >
-        vs
-      </div>
+    return (
+        <div className="group flex items-center gap-4 px-6 py-4 hover:bg-[var(--color-surface-elevated)] transition-colors">
+            {/* Team A */}
+            <div className="flex-1 flex flex-col items-start min-w-0">
+                <div className={cn("text-2xl font-black tabular mb-1", teamAWon ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>
+                    {game.teamAScore}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                    {game.teamA.map(p => (
+                        <span key={p.id} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)]">
+              {p.name}
+            </span>
+                    ))}
+                </div>
+            </div>
 
-      <div className="flex items-center gap-3 flex-1 min-w-0 justify-end text-right">
-        <div className="min-w-0">
-          <div className="text-sm font-medium truncate text-[var(--color-muted)]">
-            {set.loserName}
-          </div>
-          <div className="text-[10px] uppercase tracking-wider text-[var(--color-subtle)] font-medium">
-            Przegrana
-          </div>
-        </div>
-        <Avatar name={set.loserName} size="md" className="opacity-60" />
-      </div>
+            {/* VS Badge */}
+            <div className="shrink-0 px-3 py-1 rounded-full text-[10px] font-mono uppercase tracking-wider bg-[var(--color-background)] text-[var(--color-subtle)] border border-[var(--color-border)]">
+                vs
+            </div>
 
-      <div className="shrink-0 flex items-center gap-3 pl-2 border-l border-[var(--color-border)]">
-        <div className="text-xs text-[var(--color-muted)] tabular min-w-[7ch] text-right">
-          {formatRelativeTime(set.playedAt)}
+            {/* Team B */}
+            <div className="flex-1 flex flex-col items-end min-w-0">
+                <div className={cn("text-2xl font-black tabular mb-1", teamBWon ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>
+                    {game.teamBScore}
+                </div>
+                <div className="flex flex-wrap justify-end gap-1.5">
+                    {game.teamB.map(p => (
+                        <span key={p.id} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface)] border border-[var(--color-border)]">
+              {p.name}
+            </span>
+                    ))}
+                </div>
+            </div>
+
+            {/* Akcje i Data */}
+            <div className="shrink-0 flex items-center gap-3 pl-4 border-l border-[var(--color-border)]">
+                <div className="text-xs text-[var(--color-muted)] tabular min-w-[7ch] text-right">
+                    {formatRelativeTime(game.playedAt)}
+                </div>
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onDelete}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-danger)]"
+                >
+                    <Trash2 className="size-4" />
+                </Button>
+            </div>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
-      </div>
-    </div>
-  )
+    )
 }
 
-// helper for type inference
-function useSetsData() {
-  const { data } = useQuery({ queryKey: ['sets', 50], queryFn: () => getSets(50) })
-  return data
+function useGamesData() {
+    const { data } = useQuery({ queryKey: ['games', 50], queryFn: () => api.getGames(50) })
+    return data
 }

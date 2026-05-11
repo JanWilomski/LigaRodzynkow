@@ -1,18 +1,28 @@
-﻿version: '3.8'
-
-services:
-  db:
-    image: postgres:15-alpine
-    container_name: liga_rodzynkow_db
-    restart: always
+﻿services:
+  api:
+    build: ./LigaRodzynkow  # Ścieżka do folderu z Dockerfile backendu
+    ports:
+      - "5004:8080"         # Mapujemy port VPSa na kontener
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: TwojeHasloZDockera # Musi być takie samo jak w appsettings.json!
-      POSTGRES_DB: LigaRodzynkowDb
+      - ConnectionStrings__DefaultConnection=Host=db;Database=ligarodzynkow;Username=postgres;Password=your_password
+    depends_on:
+      - db
+
+  db:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=ligarodzynkow
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  frontend:
+    build: ./frontend       # Użyje Twojego istniejącego Dockerfile
+    ports:
+      - "80:80"             # Frontend dostępny bezpośrednio na porcie 80 (HTTP)
 
 volumes:
   postgres_data:

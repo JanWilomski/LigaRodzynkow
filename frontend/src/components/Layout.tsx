@@ -21,7 +21,7 @@ export function Layout() {
             <BrandMark />
             <div>
               <h1 className="text-lg font-bold tracking-tight leading-none">
-                Liga Siatkówki
+                Liga Rodzynków
               </h1>
               <p className="text-xs text-[var(--color-muted)] mt-1 font-mono">
                 LATO · 2026

@@ -60,6 +60,7 @@ export interface PlayerProfile {
     longestStreak: number;
     partners: EntityStat[];
     opponents: EntityStat[];
+    recentGames: Game[];
 }
 
 export interface EntityStat {

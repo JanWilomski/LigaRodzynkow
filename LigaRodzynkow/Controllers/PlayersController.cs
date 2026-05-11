@@ -159,6 +159,15 @@ public class PlayersController : ControllerBase
             }
         }
 
+        var recentGamesDto = games.Take(10).Select(gp => new GameDto(
+            gp.Game.Id,
+            gp.Game.TeamAScore,
+            gp.Game.TeamBScore,
+            gp.Game.PlayedAt,
+            gp.Game.GamePlayers.Where(x => x.Team == Team.A).Select(x => new GamePlayerDto(x.PlayerId, x.Player.Name)).ToList(),
+            gp.Game.GamePlayers.Where(x => x.Team == Team.B).Select(x => new GamePlayerDto(x.PlayerId, x.Player.Name)).ToList()
+        )).ToList();
+
         var result = new PlayerProfileDto(
             player.Id,
             player.Name,
@@ -167,7 +176,7 @@ public class PlayersController : ControllerBase
             games.Count > 0 ? (double)games.Count(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) || (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)) / games.Count : 0,
             currentStreak,
             longestStreak,
-            new List<GameDto>(), // Tu można zmapować ostatnie gry używając logiki z GamesController
+            recentGamesDto, // <--- Tutaj przekazujemy uzupełnioną listę
             partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
             opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList()
         );

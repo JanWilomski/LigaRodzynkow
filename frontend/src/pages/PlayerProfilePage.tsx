@@ -72,6 +72,12 @@ export function PlayerProfilePage() {
                     name={toughestOpponent?.name}
                     sub={`Wygrywasz tylko ${Math.round((toughestOpponent?.winrate || 0) * 100)}% razy`}
                 />
+                <StatCard
+                    title="Łatwy Cel"
+                    icon={<Target className="text-amber-500 size-4" />}
+                    name={easiestOpponent?.name}
+                    sub={`Masz ${Math.round((easiestOpponent?.winrate || 0) * 100)}% zwycięstw`}
+                />
             </div>
 
             {/* Sekcja: Historia meczów na profilu */}

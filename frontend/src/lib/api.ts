@@ -42,6 +42,14 @@ export interface CreateGameDto {
     teamBPlayerIds: string[];
 }
 
+export interface DuoStanding {
+    player1Name: string;
+    player2Name: string;
+    gamesPlayed: number;
+    gamesWon: number;
+    winrate: number;
+}
+
 // ==========================================
 // KONFIGURACJA API
 // ==========================================
@@ -130,4 +138,8 @@ export const api = {
     getStandings: (): Promise<Standing[]> =>
         fetch(`${BASE_URL}/standings`)
             .then(res => handleResponse<Standing[]>(res)),
+
+    getDuoStandings: (): Promise<DuoStanding[]> =>
+        fetch(`${BASE_URL}/standings/duos`)
+            .then(res => handleResponse<DuoStanding[]>(res)),
 };

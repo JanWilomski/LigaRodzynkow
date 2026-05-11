@@ -55,4 +55,64 @@ public class StandingsController : ControllerBase
 
         return Ok(sorted);
     }
+    
+    [HttpGet("duos")]
+    public async Task<ActionResult<IEnumerable<DuoStandingDto>>> GetDuoStandings()
+    {
+        var games = await _context.Games
+            .Include(g => g.GamePlayers)
+            .ThenInclude(gp => gp.Player)
+            .ToListAsync();
+
+        var duoStats = new Dictionary<string, (int Played, int Won)>();
+
+        foreach (var game in games)
+        {
+            // Analizujemy osobno Drużynę A i Drużynę B
+            ProcessTeam(game.GamePlayers.Where(gp => gp.Team == Team.A).Select(gp => gp.Player).ToList(), 
+                        game.TeamAScore > game.TeamBScore);
+            ProcessTeam(game.GamePlayers.Where(gp => gp.Team == Team.B).Select(gp => gp.Player).ToList(), 
+                        game.TeamBScore > game.TeamAScore);
+        }
+
+        void ProcessTeam(List<Player> teamPlayers, bool isWinner)
+        {
+            if (teamPlayers.Count < 2) return;
+
+            // Tworzymy pary z zawodników w drużynie
+            for (int i = 0; i < teamPlayers.Count; i++)
+            {
+                for (int j = i + 1; j < teamPlayers.Count; j++)
+                {
+                    // Sortujemy nazwy, żeby duet "Ania-Tomek" był tym samym co "Tomek-Ania"
+                    var names = new List<string> { teamPlayers[i].Name, teamPlayers[j].Name }.OrderBy(n => n).ToList();
+                    var key = $"{names[0]}|{names[1]}";
+
+                    if (!duoStats.ContainsKey(key)) duoStats[key] = (0, 0);
+                    
+                    var current = duoStats[key];
+                    duoStats[key] = (current.Played + 1, isWinner ? current.Won + 1 : current.Won);
+                }
+            }
+        }
+
+        var result = duoStats
+            .Select(kvp => {
+                var names = kvp.Key.Split('|');
+                return new DuoStandingDto(
+                    names[0],
+                    names[1],
+                    kvp.Value.Played,
+                    kvp.Value.Won,
+                    kvp.Value.Played > 0 ? (double)kvp.Value.Won / kvp.Value.Played : 0
+                );
+            })
+            .Where(d => d.GamesPlayed >= 2) // Opcjonalnie: tylko duety, które grały min. 2 razy
+            .OrderByDescending(d => d.Winrate)
+            .ThenByDescending(d => d.GamesPlayed)
+            .Take(5) // Top 5 duetów
+            .ToList();
+
+        return Ok(result);
+    }
 }

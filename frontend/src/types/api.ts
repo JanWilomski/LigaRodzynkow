@@ -42,3 +42,10 @@ export interface ApiError {
   errors?: Record<string, string[]>
   error?: string
 }
+export interface DuoStanding {
+    player1Name: string;
+    player2Name: string;
+    gamesPlayed: number;
+    gamesWon: number;
+    winrate: number;
+}

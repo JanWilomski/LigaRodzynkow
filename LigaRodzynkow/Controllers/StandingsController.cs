@@ -34,31 +34,30 @@ public class StandingsController : ControllerBase
                 (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)
             );
 
-            // Pobieramy 5 ostatnich meczów gracza i sprawdzamy czy wygrał
+            // NOWE: Obliczanie małych punktów
+            int pointsScored = p.GamePlayers.Sum(gp => gp.Team == Team.A ? gp.Game.TeamAScore : gp.Game.TeamBScore);
+            int pointsConceded = p.GamePlayers.Sum(gp => gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore);
+
             var recentForm = p.GamePlayers
                 .OrderByDescending(gp => gp.Game.PlayedAt)
                 .Take(5)
                 .Select(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
                               (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore))
                 .ToList();
-            
-            // Odwracamy listę, żeby najnowszy mecz był na końcu (po prawej stronie na ekranie)
             recentForm.Reverse();
 
             return new StandingDto(
-                p.Id,
-                p.Name,
-                played,
-                won,
-                played - won,
+                p.Id, p.Name, played, won, played - won,
                 played > 0 ? (double)won / played : 0,
-                0, // Rank
-                recentForm // Przekazujemy formę
+                pointsScored, pointsConceded, // NOWE POLA
+                0, recentForm
             );
         }).ToList();
 
+        // NOWE: Sortowanie bierze pod uwagę bilans małych punktów przy remisach!
         var sorted = stats
             .OrderByDescending(s => s.Winrate)
+            .ThenByDescending(s => s.PointsScored - s.PointsConceded) // Tie-breaker!
             .ThenByDescending(s => s.GamesWon)
             .ThenBy(s => s.PlayerName)
             .Select((s, index) => s with { Rank = index + 1 })

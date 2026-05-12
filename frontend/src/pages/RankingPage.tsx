@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom' // Dodano Link do nawigacji
+import { Link } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { formatPercent, cn } from '@/lib/utils'
@@ -126,7 +126,7 @@ export function RankingPage() {
                     <div>
                         <h2 className="text-base font-semibold">Klasyfikacja generalna</h2>
                         <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                            Sortowane po procencie wygranych setów
+                            Sortowane po procencie wygranych setów (remisy rozstrzygają małe punkty)
                         </p>
                     </div>
                 </div>
@@ -137,8 +137,10 @@ export function RankingPage() {
                         <tr className="text-[10px] uppercase tracking-wider text-[var(--color-subtle)] border-b border-[var(--color-border)]">
                             <th className="text-left font-medium px-6 py-3 w-12">#</th>
                             <th className="text-left font-medium px-3 py-3">Zawodnik</th>
-                            <th className="text-right font-medium px-3 py-3 w-20">Rozegrane</th>
+                            <th className="text-right font-medium px-3 py-3 w-20 hidden sm:table-cell">Rozegrane</th>
                             <th className="text-right font-medium px-3 py-3 w-24">W—P</th>
+                            {/* NOWA KOLUMNA +/- */}
+                            <th className="text-right font-medium px-3 py-3 w-20 hidden md:table-cell">+/-</th>
                             <th className="text-center font-medium px-3 py-3 w-28">Forma</th>
                             <th className="text-right font-medium px-6 py-3 w-32">Winrate</th>
                         </tr>
@@ -166,6 +168,8 @@ function RankingRow({ standing }: { standing: NonNullable<ReturnType<typeof useS
                     ? 'text-[oklch(0.65_0.10_55)]'
                     : 'text-[var(--color-subtle)]'
 
+    const pointBalance = standing.pointsScored - standing.pointsConceded;
+
     return (
         <tr className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-elevated)] transition-colors">
             <td className="px-6 py-4">
@@ -187,7 +191,7 @@ function RankingRow({ standing }: { standing: NonNullable<ReturnType<typeof useS
                     </span>
                 </Link>
             </td>
-            <td className="px-3 py-4 text-right text-sm text-[var(--color-muted)] tabular">
+            <td className="px-3 py-4 text-right text-sm text-[var(--color-muted)] tabular hidden sm:table-cell">
                 {standing.gamesPlayed}
             </td>
             <td className="px-3 py-4 text-right text-sm tabular">
@@ -195,10 +199,20 @@ function RankingRow({ standing }: { standing: NonNullable<ReturnType<typeof useS
                 <span className="text-[var(--color-subtle)] mx-1">—</span>
                 <span className="text-[var(--color-muted)]">{standing.gamesLost}</span>
             </td>
+
+            {/* WYZNACZANIE MAŁYCH PUNKTÓW */}
+            <td className="px-3 py-4 text-right tabular hidden md:table-cell">
+                <div className={cn("text-sm font-bold", pointBalance > 0 ? "text-[var(--color-success)]" : (pointBalance < 0 ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]"))}>
+                    {pointBalance > 0 ? '+' : ''}{pointBalance}
+                </div>
+                <div className="text-[10px] text-[var(--color-muted)]">
+                    {standing.pointsScored}:{standing.pointsConceded}
+                </div>
+            </td>
+
             <td className="px-3 py-4">
                 <div className="flex items-center justify-center gap-1">
                     {standing.recentForm && standing.recentForm.length > 0 ? (
-                        // Renderujemy kółeczka od lewej (najstarsze) do prawej (najnowsze z 5 ostatnich)
                         standing.recentForm.map((isWin, idx) => (
                             <div
                                 key={idx}

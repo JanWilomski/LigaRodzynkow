@@ -1,10 +1,11 @@
-﻿import { useState, useMemo } from 'react' // Dodano useMemo
+﻿import { useState, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { Dices, Save, UserCheck, RefreshCw, AlertTriangle } from 'lucide-react' // Dodano AlertTriangle
+import { useNavigate } from 'react-router-dom'
+import { Activity, Dices, Save, UserCheck, RefreshCw, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DrawnTeams {
@@ -15,6 +16,7 @@ interface DrawnTeams {
 export default function DrawPage() {
     const { show } = useToast()
     const queryClient = useQueryClient()
+    const navigate = useNavigate() // <--- BRAKOWAŁO TEJ LINIJKI!
 
     // Pobieramy graczy
     const { data: players } = useQuery({
@@ -217,14 +219,26 @@ export default function DrawPage() {
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-[var(--color-border)]">
+                        <div className="pt-6 border-t border-[var(--color-border)] flex flex-col sm:flex-row gap-3">
+                            {/* Przycisk przejścia do Tablicy na żywo */}
+                            <Button
+                                variant="secondary"
+                                className="flex-1 h-12 gap-2 border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
+                                onClick={() => {
+                                    // Nawigujemy do tablicy na żywo przekazując składy
+                                    navigate('/live', { state: { teamAIds: drawnTeams.teamA, teamBIds: drawnTeams.teamB } })
+                                }}
+                            >
+                                <Activity className="size-5" /> Sędziuj na żywo
+                            </Button>
+
                             <Button
                                 onClick={handleSaveMatch}
                                 disabled={!canSave || createMutation.isPending}
-                                className="w-full h-12 gap-2 bg-[var(--color-success)] hover:bg-[var(--color-success)]/90"
+                                className="flex-1 h-12 gap-2"
                             >
                                 <Save className="size-5" />
-                                {createMutation.isPending ? 'Zapisywanie...' : 'Zatwierdź i zapisz wynik do bazy'}
+                                Zapisz ręcznie z palca
                             </Button>
                         </div>
                     </div>

@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout'
 import { RankingPage } from '@/pages/RankingPage'
 import { PlayersPage } from '@/pages/PlayersPage'
 import { HistoryPage } from '@/pages/HistoryPage'
+import { LiveScorePage } from '@/pages/LiveScorePage'
 import DrawPage from "@/pages/DrawPage"
 import { PlayerProfilePage } from "@/pages/PlayerProfilePage"
 import { ToastProvider } from '@/components/ui/Toast'
@@ -29,6 +30,7 @@ export function App() {
               <Route path="history" element={<HistoryPage />} />
               <Route path="draw" element={<DrawPage />} />
               <Route path="players/:id" element={<PlayerProfilePage />} />
+              <Route path="live" element={<LiveScorePage />} />
             </Route>
           </Routes>
         </BrowserRouter>

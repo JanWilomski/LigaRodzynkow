@@ -7,6 +7,8 @@ public record StandingDto(
     int GamesWon,
     int GamesLost,
     double Winrate,
+    int PointsScored,
+    int PointsConceded,
     int Rank,
     List<bool> RecentForm
 );

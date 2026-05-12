@@ -139,6 +139,7 @@ export function RankingPage() {
                             <th className="text-left font-medium px-3 py-3">Zawodnik</th>
                             <th className="text-right font-medium px-3 py-3 w-20">Rozegrane</th>
                             <th className="text-right font-medium px-3 py-3 w-24">W—P</th>
+                            <th className="text-center font-medium px-3 py-3 w-28">Forma</th>
                             <th className="text-right font-medium px-6 py-3 w-32">Winrate</th>
                         </tr>
                         </thead>
@@ -193,6 +194,27 @@ function RankingRow({ standing }: { standing: NonNullable<ReturnType<typeof useS
                 <span className="text-[var(--color-success)] font-medium">{standing.gamesWon}</span>
                 <span className="text-[var(--color-subtle)] mx-1">—</span>
                 <span className="text-[var(--color-muted)]">{standing.gamesLost}</span>
+            </td>
+            <td className="px-3 py-4">
+                <div className="flex items-center justify-center gap-1">
+                    {standing.recentForm && standing.recentForm.length > 0 ? (
+                        // Renderujemy kółeczka od lewej (najstarsze) do prawej (najnowsze z 5 ostatnich)
+                        standing.recentForm.map((isWin, idx) => (
+                            <div
+                                key={idx}
+                                title={isWin ? "Wygrana" : "Przegrana"}
+                                className={cn(
+                                    "w-2.5 h-2.5 rounded-full ring-1 ring-offset-1 ring-offset-[var(--color-surface)]",
+                                    isWin
+                                        ? "bg-[var(--color-success)] ring-[var(--color-success)]/30"
+                                        : "bg-[var(--color-danger)] ring-[var(--color-danger)]/30"
+                                )}
+                            />
+                        ))
+                    ) : (
+                        <span className="text-[10px] text-[var(--color-muted)]">Brak</span>
+                    )}
+                </div>
             </td>
             <td className="px-6 py-4">
                 <div className="flex items-center justify-end gap-3">

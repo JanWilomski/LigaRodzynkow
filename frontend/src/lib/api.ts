@@ -29,6 +29,7 @@ export interface Standing {
     gamesLost: number;
     winrate: number;
     rank: number;
+    recentForm: boolean[];
 }
 
 export interface CreatePlayerDto {

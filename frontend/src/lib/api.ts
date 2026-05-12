@@ -59,6 +59,8 @@ export interface PlayerProfile {
     gamesPlayed: number;
     gamesWon: number;
     winrate: number;
+    pointsScored: number;
+    pointsConceded: number;
     currentStreak: number;
     longestStreak: number;
     partners: EntityStat[];

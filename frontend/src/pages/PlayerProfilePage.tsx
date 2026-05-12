@@ -27,11 +27,12 @@ export function PlayerProfilePage() {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            {/* Header / Hero (bez zmian) */}
+            {/* Header / Hero Section */}
             <div className="flex flex-col md:flex-row gap-6 items-center bg-[var(--color-surface)] p-8 rounded-xl border border-[var(--color-border)] shadow-sm">
-                <Avatar name={p.name} size="lg" className="size-24 text-2xl" />
-                <div className="text-center md:text-left flex-1">
-                    <h1 className="text-3xl font-black tracking-tight leading-none">{p.name}</h1>
+                <Avatar name={p.name} size="lg" className="size-24 text-2xl shrink-0" />
+                <div className="text-center md:text-left flex-1 min-w-0">
+                    <h1 className="text-3xl font-black tracking-tight leading-none truncate">{p.name}</h1>
+
                     <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
                         <div className="text-sm font-mono text-[var(--color-muted)]">
                             WINRATE: <span className="text-[var(--color-accent)] font-bold">{formatPercent(p.winrate)}</span>
@@ -39,16 +40,31 @@ export function PlayerProfilePage() {
                         <div className="text-sm font-mono text-[var(--color-muted)]">
                             MECZE: <span className="text-[var(--color-foreground)] font-bold">{p.gamesPlayed}</span>
                         </div>
+
+                        {/* NOWOŚĆ: Bilans małych punktów */}
+                        <div className="text-sm font-mono flex items-center gap-1.5 border-l border-[var(--color-border)] pl-4">
+                            <span className="text-[var(--color-muted)]">PUNKTY:</span>
+                            <span className="font-bold text-[var(--color-foreground)] tabular-nums">{p.pointsScored}:{p.pointsConceded}</span>
+                            <span className={cn(
+                                "text-xs font-black px-1.5 py-0.5 rounded ml-1",
+                                (p.pointsScored - p.pointsConceded) > 0 ? "bg-[var(--color-success)]/10 text-[var(--color-success)]" :
+                                    (p.pointsScored - p.pointsConceded) < 0 ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)]" :
+                                        "bg-[var(--color-border)] text-[var(--color-muted)]"
+                            )}>
+                                {(p.pointsScored - p.pointsConceded) > 0 ? '+' : ''}{p.pointsScored - p.pointsConceded}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex gap-3">
-                    <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-lg text-center min-w-[100px]">
+                {/* Serie zwycięstw */}
+                <div className="flex gap-3 shrink-0">
+                    <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-lg text-center min-w-[90px]">
                         <Flame className="size-5 text-orange-500 mx-auto mb-1" />
                         <div className="text-[10px] uppercase font-black text-orange-500/70 tracking-widest">Seria</div>
                         <div className="text-2xl font-black text-orange-500">{p.currentStreak}</div>
                     </div>
-                    <div className="bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 p-4 rounded-lg text-center min-w-[100px]">
+                    <div className="bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 p-4 rounded-lg text-center min-w-[90px]">
                         <Zap className="size-5 text-[var(--color-accent)] mx-auto mb-1" />
                         <div className="text-[10px] uppercase font-black text-[var(--color-accent)]/70 tracking-widest">Rekord</div>
                         <div className="text-2xl font-black text-[var(--color-accent)]">{p.longestStreak}</div>

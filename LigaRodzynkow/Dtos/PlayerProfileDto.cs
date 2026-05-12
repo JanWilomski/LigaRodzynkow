@@ -6,6 +6,8 @@ public record PlayerProfileDto(
     int GamesPlayed,
     int GamesWon,
     double Winrate,
+    int PointsScored,
+    int PointsConceded,
     int CurrentStreak,
     int LongestStreak,
     List<GameDto> RecentGames,

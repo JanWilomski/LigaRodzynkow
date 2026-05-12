@@ -167,6 +167,9 @@ public class PlayersController : ControllerBase
             gp.Game.GamePlayers.Where(x => x.Team == Team.A).Select(x => new GamePlayerDto(x.PlayerId, x.Player.Name)).ToList(),
             gp.Game.GamePlayers.Where(x => x.Team == Team.B).Select(x => new GamePlayerDto(x.PlayerId, x.Player.Name)).ToList()
         )).ToList();
+        
+        int pointsScored = games.Sum(gp => gp.Team == Team.A ? gp.Game.TeamAScore : gp.Game.TeamBScore);
+        int pointsConceded = games.Sum(gp => gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore);
 
         var result = new PlayerProfileDto(
             player.Id,
@@ -174,9 +177,11 @@ public class PlayersController : ControllerBase
             games.Count,
             games.Count(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) || (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)),
             games.Count > 0 ? (double)games.Count(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) || (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)) / games.Count : 0,
+            pointsScored,
+            pointsConceded,
             currentStreak,
             longestStreak,
-            recentGamesDto, // <--- Tutaj przekazujemy uzupełnioną listę
+            recentGamesDto,
             partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
             opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList()
         );

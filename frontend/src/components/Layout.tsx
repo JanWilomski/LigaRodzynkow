@@ -5,9 +5,9 @@ import { Trophy, Users, History, Dices, Activity } from 'lucide-react' // Dodano
 const tabs = [
     { to: '/', label: 'Ranking', icon: Trophy, exact: true },
     { to: '/draw', label: 'Losowanie', icon: Dices },
-    { to: '/live', label: 'Live', icon: Activity }, // NOWA ZAKŁADKA
-    { to: '/players', label: 'Gracze', icon: Users },
     { to: '/history', label: 'Historia', icon: History },
+    { to: '/live', label: 'Live', icon: Activity },
+    { to: '/players', label: 'Gracze', icon: Users },
 ]
 
 export function Layout() {

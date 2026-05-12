@@ -111,23 +111,48 @@ export function PlayerProfilePage() {
                 <CardContent className="p-0">
                     <div className="divide-y divide-[var(--color-border)]">
                         {p.recentGames && p.recentGames.length > 0 ? (
-                            p.recentGames.map((game: Game) => (
-                                <div key={game.id} className="flex items-center justify-between px-6 py-4 hover:bg-[var(--color-surface-elevated)] transition-colors">
-                                    <div className="flex items-center gap-6">
-                                        <div className="text-lg font-black tabular min-w-[80px]">
-                                            <span className={cn(game.teamAScore > game.teamBScore ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>{game.teamAScore}</span>
-                                            <span className="mx-1 text-[var(--color-subtle)]">:</span>
-                                            <span className={cn(game.teamBScore > game.teamAScore ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>{game.teamBScore}</span>
+                            p.recentGames.map((game: Game) => {
+                                // 1. Sprawdzamy w której drużynie grał zawodnik
+                                const isTeamA = game.teamA.some((x: GamePlayer) => x.id === p.id);
+                                // 2. Sprawdzamy czy drużyna A wygrała
+                                const teamAWon = game.teamAScore > game.teamBScore;
+                                // 3. Logika wygranej zawodnika
+                                const playerWon = isTeamA ? teamAWon : !teamAWon;
+
+                                return (
+                                    <div
+                                        key={game.id}
+                                        className={cn(
+                                            "flex items-center justify-between px-6 py-4 transition-colors border-l-4",
+                                            playerWon
+                                                ? "bg-[var(--color-success)]/5 hover:bg-[var(--color-success)]/10 border-l-[var(--color-success)]/70"
+                                                : "bg-[var(--color-danger)]/5 hover:bg-[var(--color-danger)]/10 border-l-[var(--color-danger)]/50"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-lg font-black tabular min-w-[80px]">
+                                                <span className={cn(game.teamAScore > game.teamBScore ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>{game.teamAScore}</span>
+                                                <span className="mx-1 text-[var(--color-subtle)]">:</span>
+                                                <span className={cn(game.teamBScore > game.teamAScore ? "text-[var(--color-success)]" : "text-[var(--color-muted)]")}>{game.teamBScore}</span>
+                                            </div>
+                                            <div className="text-xs text-[var(--color-muted)] font-mono">
+                                                {formatRelativeTime(game.playedAt)}
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-[var(--color-muted)] font-mono">
-                                            {formatRelativeTime(game.playedAt)}
+                                        <div className={cn(
+                                            "text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md",
+                                            playerWon
+                                                ? "text-[var(--color-success)] bg-[var(--color-success)]/10"
+                                                : "text-[var(--color-danger)] bg-[var(--color-danger)]/10"
+                                        )}>
+                                            {playerWon ? "WYGRANA" : "PORAŻKA"}
+                                            <span className="opacity-60 font-medium ml-1.5 hidden sm:inline">
+                                                (Team {isTeamA ? "A" : "B"})
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className="text-[10px] text-[var(--color-subtle)] uppercase font-black tracking-widest">
-                                        {game.teamA.some((x: GamePlayer) => x.id === p.id) ? "Drużyna A" : "Drużyna B"}
-                                    </div>
-                                </div>
-                            ))
+                                )
+                            })
                         ) : (
                             <div className="py-12 text-center text-sm text-[var(--color-muted)] font-mono">
                                 Brak zarejestrowanych meczów.

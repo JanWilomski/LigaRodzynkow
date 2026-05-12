@@ -18,9 +18,9 @@ public class StandingsController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<ActionResult<IEnumerable<StandingDto>>> GetStandings()
     {
-        // Pobieramy graczy z ich meczami (Eager Loading)
         var players = await _context.Players
             .Include(p => p.GamePlayers)
             .ThenInclude(gp => gp.Game)
@@ -34,6 +34,17 @@ public class StandingsController : ControllerBase
                 (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore)
             );
 
+            // Pobieramy 5 ostatnich meczów gracza i sprawdzamy czy wygrał
+            var recentForm = p.GamePlayers
+                .OrderByDescending(gp => gp.Game.PlayedAt)
+                .Take(5)
+                .Select(gp => (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                              (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore))
+                .ToList();
+            
+            // Odwracamy listę, żeby najnowszy mecz był na końcu (po prawej stronie na ekranie)
+            recentForm.Reverse();
+
             return new StandingDto(
                 p.Id,
                 p.Name,
@@ -41,11 +52,11 @@ public class StandingsController : ControllerBase
                 won,
                 played - won,
                 played > 0 ? (double)won / played : 0,
-                0 // Rank przypiszemy po sortowaniu
+                0, // Rank
+                recentForm // Przekazujemy formę
             );
         }).ToList();
 
-        // Sortowanie zgodnie z kontraktem: winrate -> wygrane -> nazwa
         var sorted = stats
             .OrderByDescending(s => s.Winrate)
             .ThenByDescending(s => s.GamesWon)

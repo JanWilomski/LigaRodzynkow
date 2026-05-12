@@ -1,10 +1,10 @@
-﻿import { useState } from 'react'
+﻿import { useState, useMemo } from 'react' // Dodano useMemo
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { Dices, Save, UserCheck, RefreshCw } from 'lucide-react'
+import { Dices, Save, UserCheck, RefreshCw, AlertTriangle } from 'lucide-react' // Dodano AlertTriangle
 import { cn } from '@/lib/utils'
 
 interface DrawnTeams {
@@ -22,11 +22,17 @@ export default function DrawPage() {
         queryFn: api.getPlayers,
     })
 
+    // Pobieramy 5 ostatnich meczów do sprawdzenia powtórek
+    const { data: recentGames } = useQuery({
+        queryKey: ['games', 5],
+        queryFn: () => api.getGames(5),
+    })
+
     // Stan wyboru graczy i losowania
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [drawnTeams, setDrawnTeams] = useState<DrawnTeams | null>(null)
 
-    // Stan wyniku (pojawia się po losowaniu)
+    // Stan wyniku
     const [scoreA, setScoreA] = useState<number | ''>('')
     const [scoreB, setScoreB] = useState<number | ''>('')
 
@@ -36,8 +42,8 @@ export default function DrawPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['games'] })
             queryClient.invalidateQueries({ queryKey: ['standings'] })
+            queryClient.invalidateQueries({ queryKey: ['standings-duos'] })
             show({ title: 'Mecz zapisany!', variant: 'success' })
-            // Resetujemy tylko wyniki, składy zostają jeśli chcecie grać rewanż
             setScoreA('')
             setScoreB('')
         },
@@ -80,6 +86,25 @@ export default function DrawPage() {
             teamBPlayerIds: drawnTeams.teamB,
         })
     }
+
+    // LOGIKA SPRAWDZANIA POWTÓREK
+    const hasPlayedRecently = useMemo(() => {
+        if (!drawnTeams || !recentGames) return false;
+
+        // Sortujemy ID graczy i łączymy w stringa, aby łatwo porównać "zestawy" osób
+        const drawnSetA = [...drawnTeams.teamA].sort().join(',');
+        const drawnSetB = [...drawnTeams.teamB].sort().join(',');
+
+        return recentGames.some(game => {
+            const gameSetA = game.teamA.map(p => p.id).sort().join(',');
+            const gameSetB = game.teamB.map(p => p.id).sort().join(',');
+
+            // Sprawdzamy czy drużyny są identyczne (A vs A i B vs B) 
+            // LUB czy są zamienione stronami (A vs B i B vs A)
+            return (drawnSetA === gameSetA && drawnSetB === gameSetB) ||
+                (drawnSetA === gameSetB && drawnSetB === gameSetA);
+        });
+    }, [drawnTeams, recentGames]);
 
     const canSave = drawnTeams && scoreA !== '' && scoreB !== '' && scoreA !== scoreB
 
@@ -132,7 +157,22 @@ export default function DrawPage() {
                         </Button>
                     </div>
 
-                    <div className="p-6 space-y-8">
+                    <div className="p-6 space-y-6">
+
+                        {/* ALERT: Ostrzeżenie o powtórce */}
+                        {hasPlayedRecently && (
+                            <div className="flex items-start gap-3 p-4 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg animate-in slide-in-from-top-2">
+                                <AlertTriangle className="size-5 shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-sm font-bold">Uwaga: Deja vu!</h4>
+                                    <p className="text-xs mt-1">
+                                        Dokładnie takie same składy grały już ze sobą w jednym z 5 ostatnich meczów.
+                                        Zalecamy kliknąć "Ponów losowanie" w prawym górnym rogu, by uniknąć nudy.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
                             {/* Team A */}
                             <div className="space-y-4 text-center">
@@ -153,7 +193,7 @@ export default function DrawPage() {
                                 />
                             </div>
 
-                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-10 items-center justify-center rounded-full bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-subtle)] font-black italic">
+                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-10 items-center justify-center rounded-full bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-subtle)] font-black italic shadow-sm">
                                 VS
                             </div>
 

@@ -110,4 +110,44 @@ public class GamesController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+    
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateGame(Guid id, [FromBody] CreateGameDto request)
+    {
+        var game = await _context.Games
+            .Include(g => g.GamePlayers)
+            .FirstOrDefaultAsync(g => g.Id == id);
+
+        if (game == null) return NotFound();
+
+        // 1. Walidacja
+        if (request.TeamAScore < 0 || request.TeamBScore < 0)
+            return BadRequest(new ProblemDetails { Title = "Błąd walidacji", Detail = "Wyniki nie mogą być ujemne." });
+
+        if (request.TeamAScore == request.TeamBScore)
+            return BadRequest(new ProblemDetails { Title = "Błąd walidacji", Detail = "Brak remisów w siatkówce." });
+
+        if (!request.TeamAPlayerIds.Any() || !request.TeamBPlayerIds.Any())
+            return BadRequest(new ProblemDetails { Title = "Błąd walidacji", Detail = "Każda drużyna musi mieć co najmniej jednego gracza." });
+
+        if (request.TeamAPlayerIds.Intersect(request.TeamBPlayerIds).Any())
+            return BadRequest(new ProblemDetails { Title = "Błąd walidacji", Detail = "Ten sam gracz w obu drużynach." });
+
+        // 2. Aktualizacja wyników
+        game.TeamAScore = request.TeamAScore;
+        game.TeamBScore = request.TeamBScore;
+
+        // 3. Aktualizacja składów (najbezpieczniej usunąć stare relacje i dodać nowe)
+        _context.GamePlayers.RemoveRange(game.GamePlayers);
+        
+        foreach (var playerId in request.TeamAPlayerIds)
+            game.GamePlayers.Add(new GamePlayer { GameId = game.Id, PlayerId = playerId, Team = Team.A });
+
+        foreach (var playerId in request.TeamBPlayerIds)
+            game.GamePlayers.Add(new GamePlayer { GameId = game.Id, PlayerId = playerId, Team = Team.B });
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

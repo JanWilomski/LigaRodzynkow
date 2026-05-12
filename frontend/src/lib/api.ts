@@ -164,7 +164,15 @@ export const api = {
     getDuoStandings: (): Promise<DuoStanding[]> =>
         fetch(`${BASE_URL}/standings/duos`)
             .then(res => handleResponse<DuoStanding[]>(res)),
+    
     getPlayerProfile: (id: string): Promise<PlayerProfile> =>
         fetch(`${BASE_URL}/players/${id}/profile`)
             .then(res => handleResponse<PlayerProfile>(res)),
+    
+    updateGame: (params: { id: string, data: CreateGameDto }): Promise<void> =>
+        fetch(`${BASE_URL}/games/${params.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params.data),
+        }).then(res => handleResponse<void>(res)),
 };

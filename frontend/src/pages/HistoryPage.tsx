@@ -140,7 +140,7 @@ export function HistoryPage() {
                         </p>
                     </div>
                     {editingGameId && (
-                        <Button variant="ghost" size="sm" onClick={resetForm} className="text-[var(--color-muted)] hover:text-red-500">
+                        <Button size="sm" onClick={resetForm} className="bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 shadow-none border-none">
                             <X className="size-4 mr-1" /> Anuluj
                         </Button>
                     )}
@@ -191,8 +191,7 @@ export function HistoryPage() {
                     )}
                 </form>
             </div>
-
-            {/* Historia meczów */}
+            
             {/* Historia meczów */}
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
                 <div className="px-6 py-4 border-b border-[var(--color-border)]">
@@ -261,13 +260,24 @@ function GameRow({ game, onEdit, onDelete }: GameRowProps) {
             </div>
 
             <div className="shrink-0 flex items-center gap-1 pl-4 border-l border-[var(--color-border)]">
-                <div className="text-xs text-[var(--color-muted)] tabular min-w-[7ch] text-right mr-2">{formatRelativeTime(game.playedAt)}</div>
+                <div className="text-xs text-[var(--color-muted)] tabular min-w-[7ch] text-right mr-1 sm:mr-2">
+                    {formatRelativeTime(game.playedAt)}
+                </div>
 
-                {/* NOWE IKONY: Edycja i Usuwanie */}
-                <Button size="sm" variant="ghost" onClick={onEdit} className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-600 hover:text-amber-700 hover:bg-amber-50 h-8 w-8 p-0">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onEdit}
+                    className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-amber-600 bg-amber-100/50 md:bg-transparent hover:bg-amber-100 h-8 w-8 p-0"
+                >
                     <Edit2 className="size-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={onDelete} className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-danger)] hover:bg-red-50 h-8 w-8 p-0">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onDelete}
+                    className="opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-danger)] bg-red-100/50 md:bg-transparent hover:bg-red-100 h-8 w-8 p-0"
+                >
                     <Trash2 className="size-4" />
                 </Button>
             </div>

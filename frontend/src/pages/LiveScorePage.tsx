@@ -214,7 +214,7 @@ export function LiveScorePage() {
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button variant="secondary" className="bg-transparent border border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)]" onClick={() => { setScoreA(0); setScoreB(0); }}>
-                            <RotateCcw className="size-4 mr-2" /> Grajcie składy jeszcze raz
+                            <RotateCcw className="size-4 mr-2" /> Jeszcze raz
                         </Button>
                         <Button onClick={handleSave} disabled={createMutation.isPending} className="bg-[var(--color-success)] hover:bg-[var(--color-success)]/90 text-white font-bold">
                             <Save className="size-5 mr-2" />

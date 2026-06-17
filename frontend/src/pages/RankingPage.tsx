@@ -103,7 +103,7 @@ export function RankingPage() {
                         Zabójcze Duety
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {duos.map((duo, idx) => (
+                    {duos.slice(0, 4).map((duo, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-md bg-[var(--color-background)] border border-[var(--color-border)] hover:border-[var(--color-accent-dim)] transition-colors group">
                                 <div className="min-w-0">
                                     <div className="text-sm font-bold truncate group-hover:text-[var(--color-accent)] transition-colors">
@@ -131,7 +131,7 @@ export function RankingPage() {
                         Niezawodne Trójki
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {trios.map((trio, idx) => (
+                    {trios.slice(0, 4).map((trio, idx) => (
                             <div key={idx} className="flex items-center justify-between p-3 rounded-md bg-[var(--color-background)] border border-[var(--color-border)] hover:border-[var(--color-accent-dim)] transition-colors group">
                                 <div className="min-w-0">
                                     <div className="text-sm font-bold truncate group-hover:text-[var(--color-accent)] transition-colors">

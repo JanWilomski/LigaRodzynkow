@@ -105,7 +105,7 @@ export function PlayerProfilePage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <TrendingUp className="size-4 text-[var(--color-accent)]" />
-                            Historia Winrate'u (od 10. meczu)
+                            Historia Winrate
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="h-[250px] sm:h-[300px] pt-4 pb-2 px-2 sm:px-6">

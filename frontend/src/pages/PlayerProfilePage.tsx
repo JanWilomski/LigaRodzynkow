@@ -256,7 +256,7 @@ export function PlayerProfilePage() {
                 <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2">
                         <Award className="size-4 text-[var(--color-accent)]" />
-                        Gablota Trofeów
+                        Osiągnięcia
                         <span className="text-xs font-mono bg-[var(--color-surface-elevated)] px-2 py-0.5 rounded-full ml-2 text-[var(--color-muted)]">
                             {p.achievements?.length || 0} / {ACHIEVEMENTS_DEF.length}
                         </span>

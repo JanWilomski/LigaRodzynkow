@@ -27,7 +27,7 @@ const ACHIEVEMENTS_DEF = [
     { id: 'FLAWLESS', title: 'Perfekcja', desc: 'Wygrana do 25, tracąc ≤5 pkt', icon: Crown, color: 'text-amber-300', bg: 'bg-amber-300/10', border: 'border-amber-300/20' },
     { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi powyżej 26 pkt', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
     // ZMIANA: Czarny Kot za 7 przegranych
-    { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Ghost, color: 'text-zinc-600', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },
+    { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Ghost, color: 'text-indigo-900', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },
     // NOWE: Kryptonit
     { id: 'KRYPTONITE', title: 'Kryptonit', desc: '5 porażek z rzędu z tym samym rywalem', icon: Magnet, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
     { id: 'TELEPATHY', title: 'Telepatia', desc: 'WR z partnerem >75% po 10 grach', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },

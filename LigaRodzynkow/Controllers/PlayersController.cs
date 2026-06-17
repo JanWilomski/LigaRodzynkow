@@ -223,6 +223,8 @@ public class PlayersController : ControllerBase
         // Syndrom Sztokholmski i Feniks
         var partnerLossStreaks = new Dictionary<Guid, int>();
         bool lastGameLostBy10 = false; 
+        
+        DateTime? lastGameDate = null;
 
         foreach (var gp in chronologicalGames)
         {
@@ -242,7 +244,17 @@ public class PlayersController : ControllerBase
             
             dailyGames[date]++;
             if (dailyGames[date] >= 15 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
-
+            
+            // Skamielina
+            if (lastGameDate.HasValue) 
+            {
+                // Sprawdzamy czy minęło co najmniej 21 dni (3 tygodnie)
+                if ((date - lastGameDate.Value).TotalDays >= 21 && !achievements.Contains("FOSSIL")) 
+                {
+                    achievements.Add("FOSSIL");
+                }
+            }
+            lastGameDate = date;
             // Lodołamacz
             if (won && currentLossStreak >= 5 && !achievements.Contains("ICEBREAKER")) achievements.Add("ICEBREAKER");
 

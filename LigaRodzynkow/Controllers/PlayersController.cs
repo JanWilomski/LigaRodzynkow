@@ -283,8 +283,14 @@ public class PlayersController : ControllerBase
                     if (!opponentLossStreaks.ContainsKey(oppId)) opponentLossStreaks[oppId] = 0;
                     opponentLossStreaks[oppId]++;
                     
-                    if (opponentLossStreaks[oppId] >= 5 && !achievements.Contains("KRYPTONITE")) {
-                        achievements.Add("KRYPTONITE");
+                    if (opponentLossStreaks[oppId] >= 5) {
+                        // Pobieramy imię przeciwnika ze słownika, który wyliczamy wyżej
+                        if (opponentStats.TryGetValue(oppId, out var stat)) {
+                            var achString = $"KRYPTONITE|{stat.Name}";
+                            if (!achievements.Contains(achString)) {
+                                achievements.Add(achString);
+                            }
+                        }
                     }
                 }
             }
@@ -301,8 +307,11 @@ public class PlayersController : ControllerBase
         }
 
         // Telepatia
-        if (partnerStats.Any(p => p.Value.Played >= 10 && (double)p.Value.Won / p.Value.Played >= 0.75))
-            achievements.Add("TELEPATHY");
+        var telepathyPartners = partnerStats.Where(p => p.Value.Played >= 10 && (double)p.Value.Won / p.Value.Played >= 0.75).ToList();
+        foreach (var partner in telepathyPartners)
+        {
+            achievements.Add($"TELEPATHY|{partner.Value.Name}");
+        }
 
         achievements = achievements.Distinct().ToList();
         // ====================================================

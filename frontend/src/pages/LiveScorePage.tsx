@@ -16,14 +16,17 @@ export function LiveScorePage() {
 
     const { data: players } = useQuery({ queryKey: ['players'], queryFn: api.getPlayers })
 
+    // Stany dla składów i trybu
     const [teamAIds, setTeamAIds] = useState<string[]>([])
     const [teamBIds, setTeamBIds] = useState<string[]>([])
     const [matchStarted, setMatchStarted] = useState(false)
 
+    // Stan meczu
     const [scoreA, setScoreA] = useState(0)
     const [scoreB, setScoreB] = useState(0)
     const [targetScore, setTargetScore] = useState(25)
 
+    // Odbieranie wylosowanych składów
     useEffect(() => {
         const state = location.state as { teamAIds?: string[], teamBIds?: string[] } | null
         if (state?.teamAIds && state?.teamBIds && state.teamAIds.length > 0 && state.teamBIds.length > 0) {
@@ -55,7 +58,7 @@ export function LiveScorePage() {
     const isFinished = (scoreA >= targetScore || scoreB >= targetScore) && Math.abs(scoreA - scoreB) >= 2
     const winner = isFinished ? (scoreA > scoreB ? 'A' : 'B') : null
 
-    // --- POPRAWIONA LOGIKA BLOKADY EKRANU ---
+    // --- LOGIKA BLOKADY EKRANU ---
     const [isLocked, setIsLocked] = useState(false)
 
     useEffect(() => {
@@ -65,16 +68,21 @@ export function LiveScorePage() {
     useEffect(() => {
         if (isLocked) {
             document.body.style.overflow = 'hidden'
-            // Zmiana: używamy natywnego blokowania CSS. Nie psuje to zdarzeń click!
-            document.body.style.touchAction = 'none'
+            document.body.style.overscrollBehavior = 'none' // Zatrzymuje "sprężynowanie" iOS
+
+            const preventScroll = (e: TouchEvent) => {
+                // Zezwalamy na scroll/touch tylko w inputach (by dało się zmienić limit)
+                if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                    e.preventDefault()
+                }
+            }
+            document.addEventListener('touchmove', preventScroll, { passive: false })
 
             return () => {
                 document.body.style.overflow = ''
-                document.body.style.touchAction = ''
+                document.body.style.overscrollBehavior = ''
+                document.removeEventListener('touchmove', preventScroll)
             }
-        } else {
-            document.body.style.overflow = ''
-            document.body.style.touchAction = ''
         }
     }, [isLocked])
 
@@ -141,11 +149,16 @@ export function LiveScorePage() {
         )
     }
 
-    // WIDOK 2: TABLICA WYNIKÓW (Zoptymalizowana pod poziome ekrany)
+    // WIDOK 2: TABLICA WYNIKÓW
     return (
-        <div className="space-y-2 sm:space-y-4 animate-fade-in max-w-3xl mx-auto">
-            {/* Ustawienia meczu - ciaśniejsze marginesy na mobile (p-3) */}
-            <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-3 sm:p-4 rounded-lg border border-[var(--color-border)]">
+        // KLUCZOWE: h-[calc(100dvh-130px)] wymusza zmieszczenie się na ekranie gdy mecz trwa.
+        // Jeśli jest isFinished, puszczamy wysokość auto, by wyświetlił się panel zapisu.
+        <div className={cn(
+            "flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto",
+            !isFinished && "h-[calc(100dvh-130px)] sm:h-auto min-h-[250px]"
+        )}>
+            {/* Ustawienia meczu - shrink-0 zabrania temu elementowi się kompresować */}
+            <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-2 sm:p-4 rounded-lg border border-[var(--color-border)] shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-widest hidden sm:block">Live Score</div>
                     <Button variant="ghost" size="sm" onClick={() => setMatchStarted(false)} className="text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 h-8">
@@ -153,14 +166,17 @@ export function LiveScorePage() {
                     </Button>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {/* Przycisk kłódki wyzerowany z nadmiarowych paddingów */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {/* KLUCZOWE: onPointerDown sprawia, że przycisk reaguje natychmiast na dotyk palcem */}
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setIsLocked(!isLocked)}
+                        onPointerDown={(e) => {
+                            e.preventDefault();
+                            setIsLocked(prev => !prev);
+                        }}
                         title={isLocked ? "Odblokuj ekran" : "Zablokuj ekran"}
-                        className={cn("h-8 w-8 p-0 transition-colors", isLocked ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
+                        className={cn("h-8 w-8 p-0 transition-colors touch-none cursor-pointer", isLocked ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
                     >
                         {isLocked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
                     </Button>
@@ -175,28 +191,32 @@ export function LiveScorePage() {
                 </div>
             </div>
 
-            {/* GŁÓWNA TABLICA - ciaśniejszy grid na mobile */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+            {/* GŁÓWNA TABLICA - flex-1 min-h-0 pozwala kompresować ten obszar w zależności od ekranu */}
+            <div className={cn("grid grid-cols-2 gap-2 sm:gap-4", !isFinished && "flex-1 min-h-0")}>
+
                 {/* Drużyna A */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'A' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
-                    <div className="p-2 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
-                        <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna A</h3>
+                    <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
+                        <h3 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna A</h3>
                         <div className="flex flex-wrap justify-center gap-1">
                             {teamAIds.map(id => (
-                                <span key={id} className="text-[8px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
+                                <span key={id} className="text-[9px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
                                     {players?.find(p => p.id === id)?.name}
                                 </span>
                             ))}
                         </div>
                     </div>
 
-                    {/* ZMIANA: Zmniejszono min-h ze 200px na 100px. Dzięki temu w poziomie pudełko potrafi się ścisnąć */}
+                    {/* KLUCZOWE: Usunięto min-h-[...px]. flex-1 i min-h-0 idealnie ściskają obszar na telefonach */}
                     <button
                         onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}
-                        className="flex-1 min-h-[100px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation"
+                        className={cn(
+                            "flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation",
+                            !isFinished ? "flex-1 min-h-0 py-2" : "py-16 sm:py-24"
+                        )}
                     >
-                        <span className="text-7xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreA}</span>
+                        <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreA}</span>
                     </button>
 
                     <div className="p-1 sm:p-2 border-t border-[var(--color-border)]/50 shrink-0">
@@ -208,11 +228,11 @@ export function LiveScorePage() {
 
                 {/* Drużyna B */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'B' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
-                    <div className="p-2 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
-                        <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna B</h3>
+                    <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
+                        <h3 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna B</h3>
                         <div className="flex flex-wrap justify-center gap-1">
                             {teamBIds.map(id => (
-                                <span key={id} className="text-[8px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
+                                <span key={id} className="text-[9px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
                                     {players?.find(p => p.id === id)?.name}
                                 </span>
                             ))}
@@ -222,9 +242,12 @@ export function LiveScorePage() {
                     <button
                         onClick={() => !isFinished && setScoreB(s => s + 1)}
                         disabled={isFinished}
-                        className="flex-1 min-h-[100px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation"
+                        className={cn(
+                            "flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation",
+                            !isFinished ? "flex-1 min-h-0 py-2" : "py-16 sm:py-24"
+                        )}
                     >
-                        <span className="text-7xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreB}</span>
+                        <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreB}</span>
                     </button>
 
                     <div className="p-1 sm:p-2 border-t border-[var(--color-border)]/50 shrink-0">
@@ -233,11 +256,12 @@ export function LiveScorePage() {
                         </Button>
                     </div>
                 </div>
+
             </div>
 
-            {/* Panel zapisu */}
+            {/* Panel zapisu (pojawia się gdy jest zwycięzca) */}
             {isFinished && (
-                <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)] p-4 sm:p-6 rounded-xl text-center animate-in slide-in-from-bottom-4 zoom-in-95 mt-4 sm:mt-6">
+                <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)] p-4 sm:p-6 rounded-xl text-center animate-in slide-in-from-bottom-4 zoom-in-95 mt-2 sm:mt-4 shrink-0">
                     <h2 className="text-xl sm:text-2xl font-black text-[var(--color-accent)] mb-2">Mecz zakończony!</h2>
                     <p className="text-[var(--color-muted)] mb-4 sm:mb-6">Drużyna {winner} wygrywa {scoreA} : {scoreB}.</p>
 

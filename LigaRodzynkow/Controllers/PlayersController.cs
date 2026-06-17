@@ -240,7 +240,7 @@ public class PlayersController : ControllerBase
                 currentLossStreak = 0;
                 
                 // Stare osiągnięcia
-                if (enemyScore >= 24 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
+                if (enemyScore >= 28 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
                 if (enemyScore < 10 && myScore>=24 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
                 if (myScore - enemyScore >= 10 && !achievements.Contains("WALL")) achievements.Add("WALL");
 

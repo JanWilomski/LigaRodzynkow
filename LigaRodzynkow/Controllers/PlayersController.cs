@@ -273,7 +273,7 @@ public class PlayersController : ControllerBase
                 defenderStreak = 0; // Porażka zawsze przerywa serię obronną
                 
                 // O włos
-                if (myScore >= 24 && !achievements.Contains("CLOSE_CALL")) achievements.Add("CLOSE_CALL");
+                if (myScore >= 26 && !achievements.Contains("CLOSE_CALL")) achievements.Add("CLOSE_CALL");
 
                 // Czarny Kot (7 porażek z rzędu)
                 if (currentLossStreak >= 7 && !achievements.Contains("BLACK_CAT")) achievements.Add("BLACK_CAT");

@@ -13,7 +13,8 @@ public record PlayerProfileDto(
     List<GameDto> RecentGames,
     List<EntityStatDto> Partners,
     List<EntityStatDto> Opponents,
-    List<WinrateHistoryDto> WinrateHistory
+    List<WinrateHistoryDto> WinrateHistory,
+    List<string> Achievements
 );
 
 public record EntityStatDto(

@@ -3,10 +3,28 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
+const ACHIEVEMENTS_DEF = [
+    { id: 'ROOKIE', title: 'Debiutant', desc: '10 rozegranych setów', icon: Medal, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+    { id: 'REGULAR', title: 'Stały Bywalec', desc: '50 rozegranych setów', icon: Star, color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+    { id: 'VETERAN', title: 'Weteran Parkietu', desc: '100 rozegranych setów', icon: Crown, color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+    { id: 'COLLECTOR', title: 'Kolekcjoner', desc: '50 wygranych setów', icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+    { id: 'ON_FIRE', title: 'On Fire', desc: '5 wygranych z rzędu', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+    { id: 'UNTOUCHABLE', title: 'Nietykalny', desc: '10 wygranych z rzędu', icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    { id: 'ICEBREAKER', title: 'Lodołamacz', desc: 'Wygrana po 5 porażkach', icon: Pickaxe, color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+    { id: 'ROLLERCOASTER', title: 'Rollercoaster', desc: 'Na przemian W/P (6x)', icon: RefreshCw, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    { id: 'CLUTCH', title: 'Stalowe Nerwy', desc: 'Wygrana na przewagi', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+    { id: 'DEMOLITION', title: 'Demolka', desc: 'Wygrana do jednocyfrówki', icon: Bomb, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+    { id: 'WALL', title: 'Mur Berliński', desc: 'Wygrana +10 punktami', icon: Lock, color: 'text-stone-500', bg: 'bg-stone-500/10', border: 'border-stone-500/20' },
+    { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
+    { id: 'TELEPATHY', title: 'Telepatia', desc: 'Świetny duet z partnerem', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
+    { id: 'NIGHT_OWL', title: 'Nocny Marek', desc: 'Wygrana po 22:00', icon: Moon, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
+    { id: 'EARLY_BIRD', title: 'Ranny Ptaszek', desc: 'Wygrana przed 10:00', icon: Sun, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+    { id: 'MARATHON', title: 'Maratończyk', desc: '8 setów jednego dnia', icon: Timer, color: 'text-teal-500', bg: 'bg-teal-500/10', border: 'border-teal-500/20' },
+];
 export function PlayerProfilePage() {
     const { id } = useParams()
     const { data: p, isLoading } = useQuery({
@@ -214,6 +232,45 @@ export function PlayerProfilePage() {
                                 Brak zarejestrowanych meczów.
                             </div>
                         )}
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                        <Award className="size-4 text-[var(--color-accent)]" />
+                        Gablota Trofeów
+                        <span className="text-xs font-mono bg-[var(--color-surface-elevated)] px-2 py-0.5 rounded-full ml-2 text-[var(--color-muted)]">
+                            {p.achievements?.length || 0} / {ACHIEVEMENTS_DEF.length}
+                        </span>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {ACHIEVEMENTS_DEF.map(ach => {
+                            const isUnlocked = p.achievements?.includes(ach.id);
+                            const Icon = ach.icon;
+
+                            return (
+                                <div
+                                    key={ach.id}
+                                    className={cn(
+                                        "flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all",
+                                        isUnlocked
+                                            ? `${ach.bg} ${ach.border}`
+                                            : "bg-[var(--color-surface)] border-dashed border-[var(--color-border)] opacity-60 grayscale"
+                                    )}
+                                >
+                                    <Icon className={cn("size-6 mb-2", isUnlocked ? ach.color : "text-[var(--color-subtle)]")} />
+                                    <div className={cn("text-[11px] uppercase tracking-wider font-black mb-1", isUnlocked ? ach.color : "text-[var(--color-muted)]")}>
+                                        {ach.title}
+                                    </div>
+                                    <div className="text-[10px] text-[var(--color-muted)] leading-tight">
+                                        {ach.desc}
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </CardContent>
             </Card>

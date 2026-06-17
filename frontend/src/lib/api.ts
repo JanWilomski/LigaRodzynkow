@@ -72,6 +72,7 @@ export interface PlayerProfile {
     opponents: EntityStat[];
     recentGames: Game[];
     winrateHistory: WinrateHistoryPoint[];
+    achievements: string[];
 }
 
 export interface EntityStat {

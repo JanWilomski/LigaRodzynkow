@@ -191,6 +191,82 @@ public class PlayersController : ControllerBase
                 winrateHistory.Add(new WinrateHistoryDto(gameNumber, (double)historyWins / gameNumber));
             }
         }
+        
+        // ================= SILNIK OSIĄGNIĘĆ =================
+        var achievements = new List<string>();
+
+        // 1. Aktywność
+        if (games.Count >= 10) achievements.Add("ROOKIE");
+        if (games.Count >= 50) achievements.Add("REGULAR");
+        if (games.Count >= 100) achievements.Add("VETERAN");
+        if (historyWins >= 50) achievements.Add("COLLECTOR");
+
+        // 2. Serie
+        if (longestStreak >= 5) achievements.Add("ON_FIRE");
+        if (longestStreak >= 10) achievements.Add("UNTOUCHABLE");
+
+        int currentLossStreak = 0;
+        int alternatingStreak = 1;
+        bool? lastResult = null;
+        var dailyGames = new Dictionary<DateTime, int>();
+
+        foreach (var gp in chronologicalGames)
+        {
+            bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                       (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+
+            int myScore = gp.Team == Team.A ? gp.Game.TeamAScore : gp.Game.TeamBScore;
+            int enemyScore = gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore;
+
+            // Maratończyk
+            var date = gp.Game.PlayedAt.Date;
+            if (!dailyGames.ContainsKey(date)) dailyGames[date] = 0;
+            dailyGames[date]++;
+            if (dailyGames[date] >= 8 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
+
+            // Lodołamacz
+            if (won && currentLossStreak >= 5 && !achievements.Contains("ICEBREAKER")) achievements.Add("ICEBREAKER");
+
+            if (won)
+            {
+                currentLossStreak = 0;
+                
+                // Zwycięstwa
+                if (enemyScore >= 24 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
+                if (enemyScore < 10 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
+                if (myScore - enemyScore >= 10 && !achievements.Contains("WALL")) achievements.Add("WALL");
+
+                // Czas (doliczamy +2h dla strefy czasowej Polski)
+                int hour = gp.Game.PlayedAt.AddHours(2).Hour;
+                if ((hour >= 22 || hour < 4) && !achievements.Contains("NIGHT_OWL")) achievements.Add("NIGHT_OWL");
+                if ((hour >= 5 && hour < 10) && !achievements.Contains("EARLY_BIRD")) achievements.Add("EARLY_BIRD");
+            }
+            else
+            {
+                currentLossStreak++;
+                // O włos
+                if (myScore >= 24 && !achievements.Contains("CLOSE_CALL")) achievements.Add("CLOSE_CALL");
+            }
+
+            // Rollercoaster
+            if (lastResult.HasValue)
+            {
+                if (lastResult.Value != won) alternatingStreak++;
+                else alternatingStreak = 1;
+
+                if (alternatingStreak >= 6 && !achievements.Contains("ROLLERCOASTER")) achievements.Add("ROLLERCOASTER");
+            }
+            lastResult = won;
+        }
+
+        // Telepatia
+        if (partnerStats.Any(p => p.Value.Played >= 10 && (double)p.Value.Won / p.Value.Played >= 0.75))
+        {
+            achievements.Add("TELEPATHY");
+        }
+
+        // Unikamy duplikatów
+        achievements = achievements.Distinct().ToList();
 
         var result = new PlayerProfileDto(
             player.Id,
@@ -205,7 +281,8 @@ public class PlayersController : ControllerBase
             recentGamesDto,
             partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
             opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
-            winrateHistory
+            winrateHistory,
+            achievements
         );
 
         return Ok(result);

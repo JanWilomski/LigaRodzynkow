@@ -258,7 +258,15 @@ export function PlayerProfilePage() {
                 <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {ACHIEVEMENTS_DEF.map(ach => {
-                            const isUnlocked = p.achievements?.includes(ach.id);
+                            // KLUCZOWE: Nowa logika sprawdzająca. Szukamy wersji z imieniem po separatorze '|'
+                            const unlockedMatches = p.achievements?.filter(a => a === ach.id || a.startsWith(`${ach.id}|`)) || [];
+                            const isUnlocked = unlockedMatches.length > 0;
+
+                            // Wyciągamy same imiona (odrzucając przedrostek np. TELEPATHY|)
+                            const payloads = unlockedMatches
+                                .map(a => a.includes('|') ? a.split('|')[1] : null)
+                                .filter(Boolean);
+
                             const Icon = ach.icon;
 
                             return (
@@ -277,6 +285,13 @@ export function PlayerProfilePage() {
                                     </div>
                                     <div className="text-[10px] text-[var(--color-muted)] leading-tight">
                                         {ach.desc}
+
+                                        {/* Wyświetlamy imiona tylko jeśli odznaka jest zdobyta */}
+                                        {isUnlocked && payloads.length > 0 && (
+                                            <div className="mt-1.5 font-bold text-[var(--color-foreground)]">
+                                                {payloads.join(', ')}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )

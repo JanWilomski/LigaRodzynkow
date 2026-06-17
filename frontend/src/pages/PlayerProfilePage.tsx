@@ -19,11 +19,11 @@ const ACHIEVEMENTS_DEF = [
     { id: 'CLUTCH', title: 'Stalowe Nerwy', desc: 'Wygrana na przewagi', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
     { id: 'DEMOLITION', title: 'Demolka', desc: 'Wygrana do jednocyfrówki', icon: Bomb, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
     { id: 'WALL', title: 'Mur Berliński', desc: 'Wygrana +10 punktami', icon: Lock, color: 'text-stone-500', bg: 'bg-stone-500/10', border: 'border-stone-500/20' },
-    { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
-    { id: 'TELEPATHY', title: 'Telepatia', desc: 'Świetny duet z partnerem', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
+    { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi po zdobyciu 26 punktów', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
+    { id: 'TELEPATHY', title: 'Telepatia', desc: 'Winrate powyżej 75% z partnerem po 10 grach', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
     { id: 'NIGHT_OWL', title: 'Nocny Marek', desc: 'Wygrana po 22:00', icon: Moon, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
     { id: 'EARLY_BIRD', title: 'Ranny Ptaszek', desc: 'Wygrana przed 10:00', icon: Sun, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-    { id: 'MARATHON', title: 'Maratończyk', desc: '8 setów jednego dnia', icon: Timer, color: 'text-teal-500', bg: 'bg-teal-500/10', border: 'border-teal-500/20' },
+    { id: 'MARATHON', title: 'Maratończyk', desc: '15 setów jednego dnia', icon: Timer, color: 'text-teal-500', bg: 'bg-teal-500/10', border: 'border-teal-500/20' },
 ];
 export function PlayerProfilePage() {
     const { id } = useParams()

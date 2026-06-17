@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { Plus, Minus, Save, RotateCcw, UserCheck, Edit2 } from 'lucide-react'
+import { Plus, Minus, Save, RotateCcw, UserCheck, Edit2, Lock, Unlock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function LiveScorePage() {
@@ -19,21 +19,20 @@ export function LiveScorePage() {
     // Stany dla składów i trybu
     const [teamAIds, setTeamAIds] = useState<string[]>([])
     const [teamBIds, setTeamBIds] = useState<string[]>([])
-    const [matchStarted, setMatchStarted] = useState(false) // NOWOŚĆ: Kontroluje, czy pokazujemy wybór graczy czy tablicę
+    const [matchStarted, setMatchStarted] = useState(false)
 
     // Stan meczu
     const [scoreA, setScoreA] = useState(0)
     const [scoreB, setScoreB] = useState(0)
     const [targetScore, setTargetScore] = useState(25)
 
-    // Odbieranie wylosowanych składów (np. jeśli przeszedłeś z zakładki Losowanie)
+    // Odbieranie wylosowanych składów
     useEffect(() => {
         const state = location.state as { teamAIds?: string[], teamBIds?: string[] } | null
         if (state?.teamAIds && state?.teamBIds && state.teamAIds.length > 0 && state.teamBIds.length > 0) {
             setTeamAIds(state.teamAIds)
             setTeamBIds(state.teamBIds)
-            setMatchStarted(true) // Automatycznie startujemy mecz
-            // Czyścimy state, żeby odświeżenie strony nie nadpisywało zmian
+            setMatchStarted(true)
             window.history.replaceState({}, document.title)
         }
     }, [location.state])
@@ -46,7 +45,6 @@ export function LiveScorePage() {
             queryClient.invalidateQueries({ queryKey: ['standings-duos'] })
             show({ title: 'Mecz zapisany!', variant: 'success' })
 
-            // Po zapisaniu czyścimy wyniki i wracamy do ekranu wyboru lub rankingu
             setScoreA(0)
             setScoreB(0)
             setMatchStarted(false)
@@ -60,6 +58,34 @@ export function LiveScorePage() {
     const isFinished = (scoreA >= targetScore || scoreB >= targetScore) && Math.abs(scoreA - scoreB) >= 2
     const winner = isFinished ? (scoreA > scoreB ? 'A' : 'B') : null
 
+    // --- LOGIKA BLOKADY EKRANU ---
+    const [isLocked, setIsLocked] = useState(false)
+
+    // Automatyczne odblokowanie po zakończeniu meczu
+    useEffect(() => {
+        if (isFinished) setIsLocked(false)
+    }, [isFinished])
+
+    // Obsługa fizycznej blokady scrolla
+    useEffect(() => {
+        if (isLocked) {
+            document.body.style.overflow = 'hidden'
+
+            // Blokowanie "sprężynowania" na iOS
+            const preventScroll = (e: TouchEvent) => {
+                if (e.touches.length > 0) e.preventDefault()
+            }
+            document.addEventListener('touchmove', preventScroll, { passive: false })
+
+            return () => {
+                document.body.style.overflow = ''
+                document.removeEventListener('touchmove', preventScroll)
+            }
+        } else {
+            document.body.style.overflow = ''
+        }
+    }, [isLocked])
+
     const handleSave = () => {
         if (!isFinished) {
             if (!confirm("Mecz jeszcze się nie skończył (brak przewagi lub limitu). Na pewno chcesz zapisać?")) return;
@@ -72,7 +98,6 @@ export function LiveScorePage() {
         })
     }
 
-    // Funkcje do ręcznego przypisywania graczy (gdy wejdziemy na Live bez losowania)
     const toggleTeamA = (id: string) => {
         setTeamAIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
         setTeamBIds((prev) => prev.filter((i) => i !== id))
@@ -83,7 +108,7 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-    // WIDOK 1: WYBÓR SKŁADÓW (Jeśli mecz nie wystartował)
+    // WIDOK 1: WYBÓR SKŁADÓW
     if (!matchStarted) {
         return (
             <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
@@ -124,7 +149,7 @@ export function LiveScorePage() {
         )
     }
 
-    // WIDOK 2: TABLICA WYNIKÓW (Gdy mecz trwa)
+    // WIDOK 2: TABLICA WYNIKÓW
     return (
         <div className="space-y-4 animate-fade-in max-w-3xl mx-auto">
             {/* Ustawienia meczu */}
@@ -137,11 +162,21 @@ export function LiveScorePage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <span className="text-xs font-bold text-[var(--color-muted)] uppercase">Gramy do:</span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsLocked(!isLocked)}
+                        title={isLocked ? "Odblokuj ekran" : "Zablokuj ekran"}
+                        className={cn("h-8 w-8 transition-colors", isLocked ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
+                    >
+                        {isLocked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+                    </Button>
+                    <span className="text-xs font-bold text-[var(--color-muted)] uppercase ml-2 hidden sm:inline">Gramy do:</span>
                     <Input
                         type="number"
                         value={targetScore}
                         onChange={e => setTargetScore(Number(e.target.value))}
+                        disabled={isLocked}
                         className="w-16 h-8 text-center font-bold"
                     />
                 </div>
@@ -165,7 +200,7 @@ export function LiveScorePage() {
                     <button
                         onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}
-                        className="flex-1 min-h-[200px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50"
+                        className="flex-1 min-h-[200px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation"
                     >
                         <span className="text-8xl md:text-9xl font-black tabular-nums tracking-tighter">{scoreA}</span>
                     </button>
@@ -193,7 +228,7 @@ export function LiveScorePage() {
                     <button
                         onClick={() => !isFinished && setScoreB(s => s + 1)}
                         disabled={isFinished}
-                        className="flex-1 min-h-[200px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50"
+                        className="flex-1 min-h-[200px] sm:min-h-[250px] flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation"
                     >
                         <span className="text-8xl md:text-9xl font-black tabular-nums tracking-tighter">{scoreB}</span>
                     </button>
@@ -206,7 +241,7 @@ export function LiveScorePage() {
                 </div>
             </div>
 
-            {/* Panel zapisu (pojawia się gdy jest zwycięzca) */}
+            {/* Panel zapisu */}
             {isFinished && (
                 <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)] p-6 rounded-xl text-center animate-in slide-in-from-bottom-4 zoom-in-95 mt-6">
                     <h2 className="text-2xl font-black text-[var(--color-accent)] mb-2">Mecz zakończony!</h2>

@@ -29,7 +29,7 @@ const ACHIEVEMENTS_DEF = [
     // ZMIANA: Czarny Kot za 7 przegranych
     { id: 'STOCKHOLM', title: 'Syndrom Sztokholmski', desc: '5 porażek z rzędu w duecie', icon: HeartHandshake, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
     { id: 'PHOENIX', title: 'Feniks', desc: 'Wygrana +10 pkt po porażce -10 pkt', icon: Bird, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    { id: 'FOSSIL', title: 'Skamielina', desc: 'Min. 3 tygodnie przerwy między grami', icon: Hourglass, color: 'text-stone-400', bg: 'bg-stone-400/10', border: 'border-stone-400/20' },
+    { id: 'FOSSIL', title: 'Skamielina', desc: 'Min. 2 tygodnie przerwy między grami', icon: Hourglass, color: 'text-stone-400', bg: 'bg-stone-400/10', border: 'border-stone-400/20' },
     // --- NOWE: Zaspał na mecz ---
     { id: 'AFK', title: 'Nie łam się', desc: 'Zdobyto mniej niż 5 punktów w secie', icon: Coffee, color: 'text-amber-700', bg: 'bg-amber-700/10', border: 'border-amber-700/20' },
     { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Cat, color: 'text-indigo-600', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },

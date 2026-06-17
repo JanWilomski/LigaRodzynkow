@@ -249,7 +249,7 @@ public class PlayersController : ControllerBase
             if (lastGameDate.HasValue) 
             {
                 // Sprawdzamy czy minęło co najmniej 21 dni (3 tygodnie)
-                if ((date - lastGameDate.Value).TotalDays >= 21 && !achievements.Contains("FOSSIL")) 
+                if ((date - lastGameDate.Value).TotalDays >= 14 && !achievements.Contains("FOSSIL")) 
                 {
                     achievements.Add("FOSSIL");
                 }

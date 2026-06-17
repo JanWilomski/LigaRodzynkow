@@ -75,6 +75,14 @@ export interface EntityStat {
     gamesWon: number;
     winrate: number;
 }
+export interface TrioStanding {
+    player1Name: string;
+    player2Name: string;
+    player3Name: string;
+    gamesPlayed: number;
+    gamesWon: number;
+    winrate: number;
+}
 
 
 // ==========================================
@@ -169,6 +177,10 @@ export const api = {
     getDuoStandings: (): Promise<DuoStanding[]> =>
         fetch(`${BASE_URL}/standings/duos`)
             .then(res => handleResponse<DuoStanding[]>(res)),
+    
+    getTrioStandings: async (): Promise<TrioStanding[]> => 
+        fetch(`${BASE_URL}/standings/trios`)
+            .then(res => handleResponse<TrioStanding[]>(res)),
     
     getPlayerProfile: (id: string): Promise<PlayerProfile> =>
         fetch(`${BASE_URL}/players/${id}/profile`)

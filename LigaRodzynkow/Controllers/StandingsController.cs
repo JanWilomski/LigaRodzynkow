@@ -125,4 +125,70 @@ public class StandingsController : ControllerBase
 
         return Ok(result);
     }
+    
+    
+    [HttpGet("trios")]
+    public async Task<ActionResult<IEnumerable<TrioStandingDto>>> GetTrioStandings()
+    {
+        var games = await _context.Games
+            .Include(g => g.GamePlayers)
+            .ThenInclude(gp => gp.Player)
+            .ToListAsync();
+
+        var trioStats = new Dictionary<string, (int Played, int Won)>();
+
+        foreach (var game in games)
+        {
+            ProcessTeam(game.GamePlayers.Where(gp => gp.Team == Team.A).Select(gp => gp.Player).ToList(), 
+                        game.TeamAScore > game.TeamBScore);
+            ProcessTeam(game.GamePlayers.Where(gp => gp.Team == Team.B).Select(gp => gp.Player).ToList(), 
+                        game.TeamBScore > game.TeamAScore);
+        }
+
+        void ProcessTeam(List<Player> teamPlayers, bool isWinner)
+        {
+            // Sprawdzamy czy drużyna miała co najmniej 3 graczy
+            if (teamPlayers.Count < 3) return;
+
+            // Tworzymy trójki z zawodników w drużynie
+            for (int i = 0; i < teamPlayers.Count; i++)
+            {
+                for (int j = i + 1; j < teamPlayers.Count; j++)
+                {
+                    for (int k = j + 1; k < teamPlayers.Count; k++)
+                    {
+                        // Sortujemy alfabetycznie, żeby uniknąć duplikatów dla tych samych składów
+                        var names = new List<string> { teamPlayers[i].Name, teamPlayers[j].Name, teamPlayers[k].Name }
+                            .OrderBy(n => n).ToList();
+                        var key = $"{names[0]}|{names[1]}|{names[2]}";
+
+                        if (!trioStats.ContainsKey(key)) trioStats[key] = (0, 0);
+                        
+                        var current = trioStats[key];
+                        trioStats[key] = (current.Played + 1, isWinner ? current.Won + 1 : current.Won);
+                    }
+                }
+            }
+        }
+
+        var result = trioStats
+            .Select(kvp => {
+                var names = kvp.Key.Split('|');
+                return new TrioStandingDto(
+                    names[0],
+                    names[1],
+                    names[2],
+                    kvp.Value.Played,
+                    kvp.Value.Won,
+                    kvp.Value.Played > 0 ? (double)kvp.Value.Won / kvp.Value.Played : 0
+                );
+            })
+            .Where(t => t.GamesPlayed >= 2) // Tylko trójki, które zagrały min. 2 razy
+            .OrderByDescending(t => t.Winrate)
+            .ThenByDescending(t => t.GamesPlayed)
+            .Take(5) // Top 5
+            .ToList();
+
+        return Ok(result);
+    }
 }

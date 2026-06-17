@@ -20,6 +20,10 @@ export function RankingPage() {
         queryKey: ['standings-duos'],
         queryFn: api.getDuoStandings,
     })
+    const { data: trios } = useQuery({
+        queryKey: ['standings-trios'],
+        queryFn: api.getTrioStandings,
+    })
 
     const totalGames = games?.length ?? 0
     const leader = standings?.[0]
@@ -112,6 +116,34 @@ export function RankingPage() {
                                 <div className="text-right ml-4">
                                     <div className="text-sm font-black text-[var(--color-success)] italic">
                                         {Math.round(duo.winrate * 100)}%
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {/* SEKCJA: Niezawodne Trójki */}
+            {trios && trios.length > 0 && (
+                <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6">
+                    <h3 className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--color-muted)] mb-4 flex items-center gap-2">
+                        <Medal className="size-3.5 text-[var(--color-accent)]" />
+                        Niezawodne Trójki
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {trios.map((trio, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-md bg-[var(--color-background)] border border-[var(--color-border)] hover:border-[var(--color-accent-dim)] transition-colors group">
+                                <div className="min-w-0">
+                                    <div className="text-sm font-bold truncate group-hover:text-[var(--color-accent)] transition-colors">
+                                        {trio.player1Name} + {trio.player2Name} + {trio.player3Name}
+                                    </div>
+                                    <div className="text-[10px] text-[var(--color-muted)] tabular mt-0.5">
+                                        {trio.gamesWon}W — {trio.gamesPlayed - trio.gamesWon}P
+                                    </div>
+                                </div>
+                                <div className="text-right ml-4">
+                                    <div className="text-sm font-black text-[var(--color-success)] italic">
+                                        {Math.round(trio.winrate * 100)}%
                                     </div>
                                 </div>
                             </div>

@@ -211,11 +211,14 @@ public class PlayersController : ControllerBase
         int currentLossStreak = 0;
         int alternatingStreak = 1;
         bool? lastResult = null;
+        
         var dailyGames = new Dictionary<DateTime, int>();
+        var dailyWinsCount = new Dictionary<DateTime, int>(); // NOWE: Do Króla Dnia
 
         // Zmienne do nowych osiągnięć
         int defenderStreak = 0;
         var opponentLossStreaks = new Dictionary<Guid, int>();
+        var opponentWinStreaks = new Dictionary<Guid, int>(); // NOWE: Do Prześladowcy
 
         foreach (var gp in chronologicalGames)
         {
@@ -226,9 +229,11 @@ public class PlayersController : ControllerBase
             int enemyScore = gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore;
             var currentOpponents = gp.Game.GamePlayers.Where(x => x.Team != gp.Team).Select(x => x.PlayerId).ToList();
 
-            // Maratończyk
+            // Maratończyk i Rejestracja gier w dniu
             var date = gp.Game.PlayedAt.Date;
             if (!dailyGames.ContainsKey(date)) dailyGames[date] = 0;
+            if (!dailyWinsCount.ContainsKey(date)) dailyWinsCount[date] = 0;
+            
             dailyGames[date]++;
             if (dailyGames[date] >= 15 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
 
@@ -238,10 +243,11 @@ public class PlayersController : ControllerBase
             if (won)
             {
                 currentLossStreak = 0;
+                dailyWinsCount[date]++; // Dodajemy wygraną z tego dnia
                 
                 // Stare osiągnięcia
                 if (enemyScore >= 28 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
-                if (enemyScore < 10 && myScore>=24 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
+                if (enemyScore < 10 && myScore >= 24 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
                 if (myScore - enemyScore >= 10 && !achievements.Contains("WALL")) achievements.Add("WALL");
 
                 // --- NOWE OSIĄGNIĘCIA W WYGRANYCH ---
@@ -251,15 +257,28 @@ public class PlayersController : ControllerBase
                     defenderStreak++;
                     if (defenderStreak >= 3 && !achievements.Contains("DEFENDER")) achievements.Add("DEFENDER");
                 } else {
-                    defenderStreak = 0; // Reset, jeśli wygraliśmy, ale straciliśmy 15+ pkt (lub graliśmy krótki set)
+                    defenderStreak = 0; 
                 }
 
                 // Perfekcja (tylko w meczach do 25 pkt)
                 if (myScore >= 25 && enemyScore <= 5 && !achievements.Contains("FLAWLESS")) achievements.Add("FLAWLESS");
 
-                // Zresetowanie "Kryptonitu" dla dzisiejszych rywali (bo z nimi wygraliśmy)
+                // Zresetowanie "Kryptonitu" dla dzisiejszych rywali
                 foreach (var oppId in currentOpponents) {
                     opponentLossStreaks[oppId] = 0;
+                }
+
+                // PRZEŚLADOWCA
+                foreach (var oppId in currentOpponents) {
+                    if (!opponentWinStreaks.ContainsKey(oppId)) opponentWinStreaks[oppId] = 0;
+                    opponentWinStreaks[oppId]++;
+                    
+                    if (opponentWinStreaks[oppId] >= 5) {
+                        if (opponentStats.TryGetValue(oppId, out var stat)) {
+                            var achString = $"BANE|{stat.Name}";
+                            if (!achievements.Contains(achString)) achievements.Add(achString);
+                        }
+                    }
                 }
 
                 // Czas
@@ -270,7 +289,12 @@ public class PlayersController : ControllerBase
             else
             {
                 currentLossStreak++;
-                defenderStreak = 0; // Porażka zawsze przerywa serię obronną
+                defenderStreak = 0; 
+                
+                // Porażka resetuje nasze passy znęcania się nad rywalami
+                foreach (var oppId in currentOpponents) {
+                    opponentWinStreaks[oppId] = 0;
+                }
                 
                 // O włos
                 if (myScore >= 26 && !achievements.Contains("CLOSE_CALL")) achievements.Add("CLOSE_CALL");
@@ -284,7 +308,6 @@ public class PlayersController : ControllerBase
                     opponentLossStreaks[oppId]++;
                     
                     if (opponentLossStreaks[oppId] >= 5) {
-                        // Pobieramy imię przeciwnika ze słownika, który wyliczamy wyżej
                         if (opponentStats.TryGetValue(oppId, out var stat)) {
                             var achString = $"KRYPTONITE|{stat.Name}";
                             if (!achievements.Contains(achString)) {
@@ -304,6 +327,20 @@ public class PlayersController : ControllerBase
                 if (alternatingStreak >= 6 && !achievements.Contains("ROLLERCOASTER")) achievements.Add("ROLLERCOASTER");
             }
             lastResult = won;
+        } // <--- KONIEC PĘTLI FOREACH
+
+        // KRÓL DNIA
+        // Sprawdza, czy w historii jest jakikolwiek dzień, w którym zagrał min. 5 meczów i wygrał dokładnie tyle samo (czyli 0 porażek)
+        if (dailyGames.Any(kvp => kvp.Value >= 5 && dailyWinsCount.ContainsKey(kvp.Key) && dailyWinsCount[kvp.Key] == kvp.Value))
+        {
+            achievements.Add("PERFECT_DAY");
+        }
+
+        // BĄDŹ JAK WODA
+        // Zlicza z iloma partnerami mamy >= 50% winrate (wymagane min. 3 rozegrane mecze)
+        if (partnerStats.Count(p => p.Value.Played >= 3 && (double)p.Value.Won / p.Value.Played >= 0.50) >= 5)
+        {
+            achievements.Add("WATER");
         }
 
         // Telepatia

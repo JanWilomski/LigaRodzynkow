@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet, Axe, Sparkles, Droplets } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -28,7 +28,9 @@ const ACHIEVEMENTS_DEF = [
     { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi powyżej 26 pkt', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
     // ZMIANA: Czarny Kot za 7 przegranych
     { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Cat, color: 'text-indigo-600', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },
-    // NOWE: Kryptonit
+    { id: 'BANE', title: 'Prześladowca', desc: '5 wygranych z rzędu z tym samym rywalem', icon: Axe, color: 'text-red-600', bg: 'bg-red-600/10', border: 'border-red-600/20' },
+    { id: 'PERFECT_DAY', title: 'Król Dnia', desc: 'Wygraj wszystkie sety dnia', icon: Sparkles, color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
+    { id: 'WATER', title: 'Bądź jak woda', desc: 'WR ≥50% z min. 5 partnerami', icon: Droplets, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
     { id: 'KRYPTONITE', title: 'Kryptonit', desc: '5 porażek z rzędu z tym samym rywalem', icon: Magnet, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
     { id: 'TELEPATHY', title: 'Telepatia', desc: 'WR z partnerem >75% po 10 grach', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
     { id: 'NIGHT_OWL', title: 'Nocny Marek', desc: 'Wygrana po 22:00', icon: Moon, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },

@@ -1,4 +1,4 @@
-﻿using LigaRodzynkow.Data;
+using LigaRodzynkow.Data;
 using LigaRodzynkow.Dtos;
 using LigaRodzynkow.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -117,7 +117,7 @@ public class StandingsController : ControllerBase
                     kvp.Value.Played > 0 ? (double)kvp.Value.Won / kvp.Value.Played : 0
                 );
             })
-            .Where(d => d.GamesPlayed >= 2) // Opcjonalnie: tylko duety, które grały min. 2 razy
+            .Where(d => d.GamesPlayed >= 10) // Opcjonalnie: tylko duety, które grały min. 2 razy
             .OrderByDescending(d => d.Winrate)
             .ThenByDescending(d => d.GamesPlayed)
             .Take(5) // Top 5 duetów
@@ -183,7 +183,7 @@ public class StandingsController : ControllerBase
                     kvp.Value.Played > 0 ? (double)kvp.Value.Won / kvp.Value.Played : 0
                 );
             })
-            .Where(t => t.GamesPlayed >= 2) // Tylko trójki, które zagrały min. 2 razy
+            .Where(t => t.GamesPlayed >= 5) // Tylko trójki, które zagrały min. 2 razy
             .OrderByDescending(t => t.Winrate)
             .ThenByDescending(t => t.GamesPlayed)
             .Take(5) // Top 5

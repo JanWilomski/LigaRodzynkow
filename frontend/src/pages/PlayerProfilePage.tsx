@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet, Axe, Sparkles, Droplets } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet, Axe, Sparkles, Droplets, Bird, HeartHandshake, Coffee } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -27,6 +27,11 @@ const ACHIEVEMENTS_DEF = [
     { id: 'FLAWLESS', title: 'Perfekcja', desc: 'Wygrana do 25, tracąc ≤5 pkt', icon: Crown, color: 'text-amber-300', bg: 'bg-amber-300/10', border: 'border-amber-300/20' },
     { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi powyżej 26 pkt', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
     // ZMIANA: Czarny Kot za 7 przegranych
+    { id: 'STOCKHOLM', title: 'Sztokholm', desc: '5 porażek z rzędu w duecie', icon: HeartHandshake, color: 'text-rose-400', bg: 'bg-rose-400/10', border: 'border-rose-400/20' },
+    { id: 'PHOENIX', title: 'Feniks', desc: 'Wygrana +10 pkt po porażce -10 pkt', icon: Bird, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+
+    // --- NOWE: Zaspał na mecz ---
+    { id: 'AFK', title: 'Zaspał na mecz', desc: 'Zdobyto mniej niż 5 punktów w secie', icon: Coffee, color: 'text-amber-700', bg: 'bg-amber-700/10', border: 'border-amber-700/20' },
     { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Cat, color: 'text-indigo-600', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },
     { id: 'BANE', title: 'Prześladowca', desc: '5 wygranych z rzędu z tym samym rywalem', icon: Axe, color: 'text-red-600', bg: 'bg-red-600/10', border: 'border-red-600/20' },
     { id: 'PERFECT_DAY', title: 'Król Dnia', desc: 'Wygraj wszystkie sety dnia', icon: Sparkles, color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },

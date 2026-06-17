@@ -12,7 +12,8 @@ public record PlayerProfileDto(
     int LongestStreak,
     List<GameDto> RecentGames,
     List<EntityStatDto> Partners,
-    List<EntityStatDto> Opponents
+    List<EntityStatDto> Opponents,
+    List<WinrateHistoryDto> WinrateHistory
 );
 
 public record EntityStatDto(
@@ -20,5 +21,10 @@ public record EntityStatDto(
     string Name,
     int GamesTogether,
     int GamesWon,
+    double Winrate
+);
+
+public record WinrateHistoryDto(
+    int GameNumber,
     double Winrate
 );

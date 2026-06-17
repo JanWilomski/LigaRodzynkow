@@ -171,6 +171,27 @@ public class PlayersController : ControllerBase
         int pointsScored = games.Sum(gp => gp.Team == Team.A ? gp.Game.TeamAScore : gp.Game.TeamBScore);
         int pointsConceded = games.Sum(gp => gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore);
 
+        // NOWOŚĆ: Obliczanie historii winrate (chronologicznie)
+        var chronologicalGames = games.OrderBy(gp => gp.Game.PlayedAt).ToList();
+        var winrateHistory = new List<WinrateHistoryDto>();
+        int historyWins = 0;
+
+        for (int i = 0; i < chronologicalGames.Count; i++)
+        {
+            var gp = chronologicalGames[i];
+            bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                       (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+
+            if (won) historyWins++;
+
+            int gameNumber = i + 1;
+            // Dodajemy punkt na wykresie dopiero od 10. meczu
+            if (gameNumber >= 10)
+            {
+                winrateHistory.Add(new WinrateHistoryDto(gameNumber, (double)historyWins / gameNumber));
+            }
+        }
+
         var result = new PlayerProfileDto(
             player.Id,
             player.Name,
@@ -183,7 +204,8 @@ public class PlayersController : ControllerBase
             longestStreak,
             recentGamesDto,
             partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
-            opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList()
+            opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
+            winrateHistory
         );
 
         return Ok(result);

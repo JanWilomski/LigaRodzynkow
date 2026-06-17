@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export function PlayerProfilePage() {
     const { id } = useParams()
@@ -99,6 +100,61 @@ export function PlayerProfilePage() {
                     sub={`Masz ${Math.round((easiestOpponent?.winrate || 0) * 100)}% zwycięstw`}
                 />
             </div>
+            {p.winrateHistory && p.winrateHistory.length > 0 && (
+                <Card className="overflow-hidden">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="size-4 text-[var(--color-accent)]" />
+                            Historia Winrate'u (od 10. meczu)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-[250px] sm:h-[300px] pt-4 pb-2 px-2 sm:px-6">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={p.winrateHistory}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                                <XAxis
+                                    dataKey="gameNumber"
+                                    stroke="var(--color-muted)"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(val) => `#${val}`}
+                                    minTickGap={20}
+                                />
+                                <YAxis
+                                    stroke="var(--color-muted)"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(val) => `${Math.round(val * 100)}%`}
+                                    domain={['auto', 'auto']}
+                                    width={40}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'var(--color-surface)',
+                                        border: '1px solid var(--color-border)',
+                                        borderRadius: '8px',
+                                        fontSize: '12px',
+                                        color: 'var(--color-foreground)'
+                                    }}
+                                    itemStyle={{ color: 'var(--color-accent)', fontWeight: 'bold' }}
+                                    formatter={(value: any) => [`${(Number(value) * 100).toFixed(1)}%`, 'Winrate']}
+                                    labelFormatter={(label) => `Mecz #${label}`}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="winrate"
+                                    stroke="var(--color-accent)"
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 5, fill: 'var(--color-surface)', stroke: 'var(--color-accent)', strokeWidth: 2 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Sekcja: Historia meczów (bez zmian) */}
             <Card>

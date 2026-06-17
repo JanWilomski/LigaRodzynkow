@@ -53,6 +53,11 @@ export interface DuoStanding {
     winrate: number;
 }
 
+export interface WinrateHistoryPoint {
+    gameNumber: number;
+    winrate: number;
+}
+
 export interface PlayerProfile {
     id: string;
     name: string;
@@ -66,6 +71,7 @@ export interface PlayerProfile {
     partners: EntityStat[];
     opponents: EntityStat[];
     recentGames: Game[];
+    winrateHistory: WinrateHistoryPoint[];
 }
 
 export interface EntityStat {

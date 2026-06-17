@@ -201,6 +201,9 @@ public class PlayersController : ControllerBase
         if (games.Count >= 100) achievements.Add("VETERAN");
         if (historyWins >= 50) achievements.Add("COLLECTOR");
 
+        // KLUB 5000
+        if (pointsScored >= 3000) achievements.Add("CLUB_3000");
+
         // 2. Serie
         if (longestStreak >= 5) achievements.Add("ON_FIRE");
         if (longestStreak >= 10) achievements.Add("UNTOUCHABLE");
@@ -210,6 +213,10 @@ public class PlayersController : ControllerBase
         bool? lastResult = null;
         var dailyGames = new Dictionary<DateTime, int>();
 
+        // Zmienne do nowych osiągnięć
+        int defenderStreak = 0;
+        var opponentLossStreaks = new Dictionary<Guid, int>();
+
         foreach (var gp in chronologicalGames)
         {
             bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
@@ -217,12 +224,13 @@ public class PlayersController : ControllerBase
 
             int myScore = gp.Team == Team.A ? gp.Game.TeamAScore : gp.Game.TeamBScore;
             int enemyScore = gp.Team == Team.A ? gp.Game.TeamBScore : gp.Game.TeamAScore;
+            var currentOpponents = gp.Game.GamePlayers.Where(x => x.Team != gp.Team).Select(x => x.PlayerId).ToList();
 
             // Maratończyk
             var date = gp.Game.PlayedAt.Date;
             if (!dailyGames.ContainsKey(date)) dailyGames[date] = 0;
             dailyGames[date]++;
-            if (dailyGames[date] >= 15 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
+            if (dailyGames[date] >= 8 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
 
             // Lodołamacz
             if (won && currentLossStreak >= 5 && !achievements.Contains("ICEBREAKER")) achievements.Add("ICEBREAKER");
@@ -231,12 +239,30 @@ public class PlayersController : ControllerBase
             {
                 currentLossStreak = 0;
                 
-                // Zwycięstwa
+                // Stare osiągnięcia
                 if (enemyScore >= 24 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
                 if (enemyScore < 10 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
                 if (myScore - enemyScore >= 10 && !achievements.Contains("WALL")) achievements.Add("WALL");
 
-                // Czas (doliczamy +2h dla strefy czasowej Polski)
+                // --- NOWE OSIĄGNIĘCIA W WYGRANYCH ---
+                
+                // Defensywa ze Stali (tylko w meczach do 25 pkt)
+                if (myScore >= 25 && enemyScore < 15) {
+                    defenderStreak++;
+                    if (defenderStreak >= 3 && !achievements.Contains("DEFENDER")) achievements.Add("DEFENDER");
+                } else {
+                    defenderStreak = 0; // Reset, jeśli wygraliśmy, ale straciliśmy 15+ pkt (lub graliśmy krótki set)
+                }
+
+                // Perfekcja (tylko w meczach do 25 pkt)
+                if (myScore >= 25 && enemyScore <= 5 && !achievements.Contains("FLAWLESS")) achievements.Add("FLAWLESS");
+
+                // Zresetowanie "Kryptonitu" dla dzisiejszych rywali (bo z nimi wygraliśmy)
+                foreach (var oppId in currentOpponents) {
+                    opponentLossStreaks[oppId] = 0;
+                }
+
+                // Czas
                 int hour = gp.Game.PlayedAt.AddHours(2).Hour;
                 if ((hour >= 22 || hour < 4) && !achievements.Contains("NIGHT_OWL")) achievements.Add("NIGHT_OWL");
                 if ((hour >= 5 && hour < 10) && !achievements.Contains("EARLY_BIRD")) achievements.Add("EARLY_BIRD");
@@ -244,8 +270,23 @@ public class PlayersController : ControllerBase
             else
             {
                 currentLossStreak++;
+                defenderStreak = 0; // Porażka zawsze przerywa serię obronną
+                
                 // O włos
                 if (myScore >= 24 && !achievements.Contains("CLOSE_CALL")) achievements.Add("CLOSE_CALL");
+
+                // Czarny Kot (7 porażek z rzędu)
+                if (currentLossStreak >= 7 && !achievements.Contains("BLACK_CAT")) achievements.Add("BLACK_CAT");
+
+                // Kryptonit
+                foreach (var oppId in currentOpponents) {
+                    if (!opponentLossStreaks.ContainsKey(oppId)) opponentLossStreaks[oppId] = 0;
+                    opponentLossStreaks[oppId]++;
+                    
+                    if (opponentLossStreaks[oppId] >= 5 && !achievements.Contains("KRYPTONITE")) {
+                        achievements.Add("KRYPTONITE");
+                    }
+                }
             }
 
             // Rollercoaster
@@ -261,12 +302,10 @@ public class PlayersController : ControllerBase
 
         // Telepatia
         if (partnerStats.Any(p => p.Value.Played >= 10 && (double)p.Value.Won / p.Value.Played >= 0.75))
-        {
             achievements.Add("TELEPATHY");
-        }
 
-        // Unikamy duplikatów
         achievements = achievements.Distinct().ToList();
+        // ====================================================
 
         var result = new PlayerProfileDto(
             player.Id,

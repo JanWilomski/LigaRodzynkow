@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Ghost, Magnet } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -12,18 +12,28 @@ const ACHIEVEMENTS_DEF = [
     { id: 'REGULAR', title: 'Stały Bywalec', desc: '50 rozegranych setów', icon: Star, color: 'text-indigo-500', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
     { id: 'VETERAN', title: 'Weteran Parkietu', desc: '100 rozegranych setów', icon: Crown, color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
     { id: 'COLLECTOR', title: 'Kolekcjoner', desc: '50 wygranych setów', icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+    // NOWE: Klub 3000
+    { id: 'CLUB_3000', title: 'Klub 3000', desc: 'Zdobyto 3000 punktów', icon: Target, color: 'text-rose-600', bg: 'bg-rose-600/10', border: 'border-rose-600/20' },
     { id: 'ON_FIRE', title: 'On Fire', desc: '5 wygranych z rzędu', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    { id: 'UNTOUCHABLE', title: 'Nietykalny', desc: '10 wygranych z rzędu', icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    { id: 'UNTOUCHABLE', title: 'Nietykalny', desc: '10 wygranych z rzędu', icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    // NOWE: Defensywa ze Stali
+    { id: 'DEFENDER', title: 'Stalowa Obrona', desc: '3 wygrane do 25, tracąc <15 pkt', icon: Shield, color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-500/20' },
     { id: 'ICEBREAKER', title: 'Lodołamacz', desc: 'Wygrana po 5 porażkach', icon: Pickaxe, color: 'text-cyan-500', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
     { id: 'ROLLERCOASTER', title: 'Rollercoaster', desc: 'Na przemian W/P (6x)', icon: RefreshCw, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
     { id: 'CLUTCH', title: 'Stalowe Nerwy', desc: 'Wygrana na przewagi', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
     { id: 'DEMOLITION', title: 'Demolka', desc: 'Wygrana do jednocyfrówki', icon: Bomb, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
     { id: 'WALL', title: 'Mur Berliński', desc: 'Wygrana +10 punktami', icon: Lock, color: 'text-stone-500', bg: 'bg-stone-500/10', border: 'border-stone-500/20' },
-    { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi po zdobyciu 26 punktów', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
-    { id: 'TELEPATHY', title: 'Telepatia', desc: 'Winrate powyżej 75% z partnerem po 10 grach', icon: Brain, color: 'text-rose-800', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
+    // NOWE: Perfekcja
+    { id: 'FLAWLESS', title: 'Perfekcja', desc: 'Wygrana do 25, tracąc ≤5 pkt', icon: Crown, color: 'text-amber-300', bg: 'bg-amber-300/10', border: 'border-amber-300/20' },
+    { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },
+    // ZMIANA: Czarny Kot za 7 przegranych
+    { id: 'BLACK_CAT', title: 'Czarny Kot', desc: '7 porażek z rzędu', icon: Ghost, color: 'text-zinc-600', bg: 'bg-zinc-600/10', border: 'border-zinc-600/20' },
+    // NOWE: Kryptonit
+    { id: 'KRYPTONITE', title: 'Kryptonit', desc: '5 porażek z rzędu z tym samym rywalem', icon: Magnet, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
+    { id: 'TELEPATHY', title: 'Telepatia', desc: 'Świetny duet z partnerem', icon: Brain, color: 'text-fuchsia-500', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20' },
     { id: 'NIGHT_OWL', title: 'Nocny Marek', desc: 'Wygrana po 22:00', icon: Moon, color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
     { id: 'EARLY_BIRD', title: 'Ranny Ptaszek', desc: 'Wygrana przed 10:00', icon: Sun, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-    { id: 'MARATHON', title: 'Maratończyk', desc: '15 setów jednego dnia', icon: Timer, color: 'text-teal-500', bg: 'bg-teal-500/10', border: 'border-teal-500/20' },
+    { id: 'MARATHON', title: 'Maratończyk', desc: '8 setów jednego dnia', icon: Timer, color: 'text-teal-500', bg: 'bg-teal-500/10', border: 'border-teal-500/20' },
 ];
 export function PlayerProfilePage() {
     const { id } = useParams()

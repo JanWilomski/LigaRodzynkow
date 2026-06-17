@@ -230,7 +230,7 @@ public class PlayersController : ControllerBase
             var date = gp.Game.PlayedAt.Date;
             if (!dailyGames.ContainsKey(date)) dailyGames[date] = 0;
             dailyGames[date]++;
-            if (dailyGames[date] >= 8 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
+            if (dailyGames[date] >= 15 && !achievements.Contains("MARATHON")) achievements.Add("MARATHON");
 
             // Lodołamacz
             if (won && currentLossStreak >= 5 && !achievements.Contains("ICEBREAKER")) achievements.Add("ICEBREAKER");
@@ -241,7 +241,7 @@ public class PlayersController : ControllerBase
                 
                 // Stare osiągnięcia
                 if (enemyScore >= 24 && !achievements.Contains("CLUTCH")) achievements.Add("CLUTCH");
-                if (enemyScore < 10 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
+                if (enemyScore < 10 && myScore>=24 && !achievements.Contains("DEMOLITION")) achievements.Add("DEMOLITION");
                 if (myScore - enemyScore >= 10 && !achievements.Contains("WALL")) achievements.Add("WALL");
 
                 // --- NOWE OSIĄGNIĘCIA W WYGRANYCH ---

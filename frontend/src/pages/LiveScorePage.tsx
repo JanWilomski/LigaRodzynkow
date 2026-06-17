@@ -167,7 +167,7 @@ export function LiveScorePage() {
                         size="sm"
                         onClick={() => setIsLocked(!isLocked)}
                         title={isLocked ? "Odblokuj ekran" : "Zablokuj ekran"}
-                        className={cn("h-8 w-8 transition-colors", isLocked ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
+                        className={cn("h-8 w-8 p-0 transition-colors", isLocked ? "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
                     >
                         {isLocked ? <Lock className="size-4" /> : <Unlock className="size-4" />}
                     </Button>

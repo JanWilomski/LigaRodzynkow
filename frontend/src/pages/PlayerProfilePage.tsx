@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api, Game, GamePlayer } from '@/lib/api'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
-import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, Lock, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet, Axe, Sparkles, Droplets, Bird, HeartHandshake, Coffee, Hourglass } from 'lucide-react'
+import { Medal, Flame, Zap, UserMinus, UserPlus, History, Target, TrendingUp, Star, Crown, Trophy, Shield, Pickaxe, RefreshCw, HeartPulse, Bomb, BrickWall, HeartCrack, Brain, Moon, Sun, Timer, Award, Cat, Magnet, Axe, Sparkles, Droplets, Bird, HeartHandshake, Coffee, Hourglass } from 'lucide-react'
 import { formatPercent, formatRelativeTime, cn } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -22,7 +22,7 @@ const ACHIEVEMENTS_DEF = [
     { id: 'ROLLERCOASTER', title: 'Rollercoaster', desc: '6 razy na zmiane W/P', icon: RefreshCw, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
     { id: 'CLUTCH', title: 'Stalowe Nerwy', desc: 'Wygrana na przewagi powyżej 30 pkt', icon: HeartPulse, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
     { id: 'DEMOLITION', title: 'Demolka', desc: 'Wygrana do jednocyfrówki', icon: Bomb, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
-    { id: 'WALL', title: 'Mur Berliński', desc: 'Wygrana +10 punktami', icon: Lock, color: 'text-stone-500', bg: 'bg-stone-500/10', border: 'border-stone-500/20' },
+    { id: 'WALL', title: 'Mur Berliński', desc: 'Wygrana +10 punktami', icon: BrickWall, color: 'text-stone-500', bg: 'bg-stone-500/10', border: 'border-stone-500/20' },
     // NOWE: Perfekcja
     { id: 'FLAWLESS', title: 'Perfekcja', desc: 'Wygrana do 25, tracąc ≤5 pkt', icon: Crown, color: 'text-amber-300', bg: 'bg-amber-300/10', border: 'border-amber-300/20' },
     { id: 'CLOSE_CALL', title: 'O Włos', desc: 'Porażka na przewagi powyżej 26 pkt', icon: HeartCrack, color: 'text-zinc-500', bg: 'bg-zinc-500/10', border: 'border-zinc-500/20' },

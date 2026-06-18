@@ -405,8 +405,12 @@ public class PlayersController : ControllerBase
             currentStreak,
             longestStreak,
             recentGamesDto,
-            partnerStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
-            opponentStats.Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played)).ToList(),
+            partnerStats.Where(kvp => kvp.Value.Played >= 10)
+                .Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played))
+                .ToList(),
+            opponentStats.Where(kvp => kvp.Value.Played >= 10)
+                .Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played))
+                .ToList(),
             winrateHistory,
             achievements
         );

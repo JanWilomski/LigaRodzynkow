@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -107,6 +107,61 @@ export function LiveScorePage() {
         setTeamBIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
+
+        // --- OBSŁUGA PILOTA (GESTY SWIPE + STRZAŁKI) ---
+    useEffect(() => {
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const handleTouchStart = (e: TouchEvent) => {
+            // Zapisujemy pozycję X (poziomą), w której "palec" dotknął ekranu
+            touchStartX = e.changedTouches[0].screenX;
+        };
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            if (isFinished) return; // Jeśli mecz się skończył, nie dodajemy punktów
+            
+            // Zapisujemy pozycję X, w której "palec" puścił ekran
+            touchEndX = e.changedTouches[0].screenX;
+            
+            // Obliczamy różnicę (dystans przesunięcia)
+            const swipeDistance = touchEndX - touchStartX;
+            
+            // Minimalny próg w pikselach (zabezpiecza przed zwykłym kliknięciem w ekran)
+            const minSwipeDistance = 30; 
+
+            if (swipeDistance > minSwipeDistance) {
+                // GEST W PRAWO (Przesunięcie w stronę prawej krawędzi) -> Dodajemy do B
+                setScoreB(s => s + 1);
+            } else if (swipeDistance < -minSwipeDistance) {
+                // GEST W LEWO (Przesunięcie w stronę lewej krawędzi) -> Dodajemy do A
+                setScoreA(s => s + 1);
+            }
+        };
+
+        // Zabezpieczenie: czasami takie piloty na komputerze/telefonie potrafią wysyłać strzałki
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (isFinished) return;
+            
+            if (e.key === 'ArrowLeft') {
+                setScoreA(s => s + 1);
+            } else if (e.key === 'ArrowRight') {
+                setScoreB(s => s + 1);
+            }
+        };
+
+        // Podpinamy nasłuchiwanie na całej stronie
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchend', handleTouchEnd);
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchend', handleTouchEnd);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isFinished]); // Ważne, żeby React odświeżał stan po zakończeniu meczu
+
 
     // WIDOK 1: WYBÓR SKŁADÓW
     if (!matchStarted) {

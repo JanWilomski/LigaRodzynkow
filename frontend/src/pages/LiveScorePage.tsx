@@ -107,30 +107,63 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-    // --- OBSŁUGA PILOTA (PRZYCISKI GŁOŚNOŚCI + STRZAŁKI) ---
+        // --- OBSŁUGA PILOTA (GESTY WIRTUALNE ASSISTIVETOUCH) ---
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (isFinished) return;
+        let startX = 0;
+        let startY = 0;
 
-            // Głośność w dół / Strzałka w lewo -> Punkty dla Drużyny A
-            if (e.key === 'VolumeDown' || e.key === 'AudioVolumeDown' || e.key === 'ArrowLeft') {
-                e.preventDefault(); // Próba zablokowania systemowego wyskakiwania paska głośności
-                setScoreA(s => s + 1);
-            } 
-            
-            // Głośność w górę / Strzałka w prawo -> Punkty dla Drużyny B
-            else if (e.key === 'VolumeUp' || e.key === 'AudioVolumeUp' || e.key === 'ArrowRight') {
-                e.preventDefault(); // Próba zablokowania systemowego wyskakiwania paska głośności
-                setScoreB(s => s + 1);
+        const handleTouchStart = (e: TouchEvent) => {
+            if (!e.touches || e.touches.length === 0) return;
+            // clientX jest znacznie lepiej interpretowany przez Safari przy emulacji dotyku
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        };
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            if (isFinished) return;
+            if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+
+            // Próg czułości w pikselach (AssistiveTouch robi zazwyczaj długie pociągnięcia)
+            const threshold = 30;
+
+            // Sprawdzamy, która oś miała silniejszy ruch (w poziomie czy w pionie)
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // GEST POZIOMY
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX > 0) {
+                        setScoreB(s => s + 1); // Przesunięcie w prawo -> Punkt dla B
+                    } else {
+                        setScoreA(s => s + 1); // Przesunięcie w lewo -> Punkt dla A
+                    }
+                }
+            } else {
+                // GEST PIONOWY (na wypadek, gdyby pilot emulował przewijanie góra/dół)
+                if (Math.abs(diffY) > threshold) {
+                    if (diffY > 0) {
+                        setScoreB(s => s + 1); // Przesunięcie w dół -> Punkt dla B
+                    } else {
+                        setScoreA(s => s + 1); // Przesunięcie w górę -> Punkt dla A
+                    }
+                }
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        // Dodajemy nasłuchiwanie z flagą passive, żeby iOS nie blokował zdarzeń
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('touchend', handleTouchEnd, { passive: true });
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown, { capture: true });
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchend', handleTouchEnd);
         };
     }, [isFinished]);
+
 
 
     // WIDOK 1: WYBÓR SKŁADÓW

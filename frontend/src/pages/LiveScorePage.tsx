@@ -107,62 +107,139 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-        // --- OBSŁUGA PILOTA (GESTY WIRTUALNE ASSISTIVETOUCH) ---
+        // --- OSTATECZNA, PANCERNA OBSŁUGA PILOTA (TOUCHMOVE + RUBBER-BAND DETECT) ---
     useEffect(() => {
         let startX = 0;
         let startY = 0;
+        let hasTriggeredInGesture = false;
+        
+        let lastScrollX = window.scrollX;
+        let lastScrollY = window.scrollY;
+        let lastTriggerTime = 0;
+        
+        const COOLDOWN_MS = 400; // Chroni przed podwójnym naliczeniem punktu przy jednym kliknięciu
 
-        const handleTouchStart = (e: TouchEvent) => {
-            if (!e.touches || e.touches.length === 0) return;
-            // clientX jest znacznie lepiej interpretowany przez Safari przy emulacji dotyku
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
+        const canTrigger = () => {
+            const now = Date.now();
+            if (now - lastTriggerTime < COOLDOWN_MS) return false;
+            lastTriggerTime = now;
+            return true;
         };
 
-        const handleTouchEnd = (e: TouchEvent) => {
-            if (isFinished) return;
-            if (!e.changedTouches || e.changedTouches.length === 0) return;
+        // 1. WYŁAPYWANIE RUCHU W TRAKCIE TRWANIA GESTU (Zanim iOS wyczyści dane)
+        const handleTouchStart = (e: TouchEvent) => {
+            if (!e.touches || e.touches.length === 0) return;
+            const touch = e.touches[0];
+            startX = touch.clientX || touch.pageX || touch.screenX || 0;
+            startY = touch.clientY || touch.pageY || touch.screenY || 0;
+            hasTriggeredInGesture = false;
+        };
 
-            const endX = e.changedTouches[0].clientX;
-            const endY = e.changedTouches[0].clientY;
+        const handleTouchMove = (e: TouchEvent) => {
+            if (isFinished || hasTriggeredInGesture) return;
+            if (!e.touches || e.touches.length === 0) return;
 
-            const diffX = endX - startX;
-            const diffY = endY - startY;
+            const touch = e.touches[0];
+            const currentX = touch.clientX || touch.pageX || touch.screenX || 0;
+            const currentY = touch.clientY || touch.pageY || touch.screenY || 0;
 
-            // Próg czułości w pikselach (AssistiveTouch robi zazwyczaj długie pociągnięcia)
-            const threshold = 30;
+            const diffX = currentX - startX;
+            const diffY = currentY - startY;
+            const threshold = 25; // Czułość gestu
 
-            // Sprawdzamy, która oś miała silniejszy ruch (w poziomie czy w pionie)
+            // Sprawdzamy ruch w poziomie (silniejszy niż w pionie)
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                // GEST POZIOMY
                 if (Math.abs(diffX) > threshold) {
+                    hasTriggeredInGesture = true;
                     if (diffX > 0) {
-                        setScoreB(s => s + 1); // Przesunięcie w prawo -> Punkt dla B
+                        if (canTrigger()) setScoreB(s => s + 1); // Gest w prawo
                     } else {
-                        setScoreA(s => s + 1); // Przesunięcie w lewo -> Punkt dla A
+                        if (canTrigger()) setScoreA(s => s + 1); // Gest w lewo
                     }
                 }
-            } else {
-                // GEST PIONOWY (na wypadek, gdyby pilot emulował przewijanie góra/dół)
+            } 
+            // Sprawdzamy ruch w pionie (na wypadek, gdyby AssistiveTouch symulował ruch góra/dół)
+            else {
                 if (Math.abs(diffY) > threshold) {
+                    hasTriggeredInGesture = true;
                     if (diffY > 0) {
-                        setScoreB(s => s + 1); // Przesunięcie w dół -> Punkt dla B
+                        if (canTrigger()) setScoreB(s => s + 1); // Gest w dół
                     } else {
-                        setScoreA(s => s + 1); // Przesunięcie w górę -> Punkt dla A
+                        if (canTrigger()) setScoreA(s => s + 1); // Gest w górę
                     }
                 }
             }
         };
 
-        // Dodajemy nasłuchiwanie z flagą passive, żeby iOS nie blokował zdarzeń
+        const handleTouchEnd = () => {
+            hasTriggeredInGesture = false;
+        };
+
+        // 2. DETEKCJA SPRĘŻYNOWANIA STRONY (Gdy współrzędne dotyku są maskowane przez iOS)
+        const handleScroll = () => {
+            if (isFinished) return;
+
+            const currentScrollX = window.scrollX;
+            const currentScrollY = window.scrollY;
+
+            const diffX = currentScrollX - lastScrollX;
+            const diffY = currentScrollY - lastScrollY;
+
+            // Jeśli system drgnął stroną w poziomie pod wpływem pilota
+            if (Math.abs(diffX) > 4) {
+                if (diffX > 0) {
+                    if (canTrigger()) setScoreB(s => s + 1);
+                } else {
+                    if (canTrigger()) setScoreA(s => s + 1);
+                }
+                window.scrollTo(0, 0); // Natychmiastowe przywrócenie pozycji ekranu
+                lastScrollX = 0;
+                lastScrollY = 0;
+                return;
+            } 
+            // Jeśli system drgnął stroną w pionie
+            else if (Math.abs(diffY) > 4) {
+                if (diffY > 0) {
+                    if (canTrigger()) setScoreB(s => s + 1);
+                } else {
+                    if (canTrigger()) setScoreA(s => s + 1);
+                }
+                window.scrollTo(0, 0);
+                lastScrollX = 0;
+                lastScrollY = 0;
+                return;
+            }
+
+            lastScrollX = currentScrollX;
+            lastScrollY = currentScrollY;
+        };
+
+        // 3. KLASYCZNE ZABEZPIECZENIE KLAWIATUROWE
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (isFinished) return;
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') {
+                if (canTrigger()) setScoreA(s => s + 1);
+            } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown') {
+                if (canTrigger()) setScoreB(s => s + 1);
+            }
+        };
+
+        // Podpinamy komplet nasłuchiwania z flagami passive dla płynności iOS
         window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('touchmove', handleTouchMove, { passive: true });
         window.addEventListener('touchend', handleTouchEnd, { passive: true });
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('keydown', handleKeyDown);
 
         return () => {
             window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
             window.removeEventListener('touchend', handleTouchEnd);
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('keydown', handleKeyDown);
         };
     }, [isFinished]);
+
 
 
 

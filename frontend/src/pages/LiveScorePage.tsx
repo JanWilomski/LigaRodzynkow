@@ -108,59 +108,73 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-        // --- OBSŁUGA PILOTA (GESTY SWIPE + STRZAŁKI) ---
+        // --- OBSŁUGA PILOTA (POINTER + KLAWISZE) ---
     useEffect(() => {
-        let touchStartX = 0;
-        let touchEndX = 0;
+        let pointerStartX = 0;
+        let pointerStartY = 0;
 
-        const handleTouchStart = (e: TouchEvent) => {
-            // Zapisujemy pozycję X (poziomą), w której "palec" dotknął ekranu
-            touchStartX = e.changedTouches[0].screenX;
+        const handlePointerDown = (e: PointerEvent) => {
+            pointerStartX = e.clientX;
+            pointerStartY = e.clientY;
         };
 
-        const handleTouchEnd = (e: TouchEvent) => {
-            if (isFinished) return; // Jeśli mecz się skończył, nie dodajemy punktów
-            
-            // Zapisujemy pozycję X, w której "palec" puścił ekran
-            touchEndX = e.changedTouches[0].screenX;
-            
-            // Obliczamy różnicę (dystans przesunięcia)
-            const swipeDistance = touchEndX - touchStartX;
-            
-            // Minimalny próg w pikselach (zabezpiecza przed zwykłym kliknięciem w ekran)
-            const minSwipeDistance = 30; 
+        const handlePointerUp = (e: PointerEvent) => {
+            if (isFinished) return;
+            const pointerEndX = e.clientX;
+            const pointerEndY = e.clientY;
 
-            if (swipeDistance > minSwipeDistance) {
-                // GEST W PRAWO (Przesunięcie w stronę prawej krawędzi) -> Dodajemy do B
-                setScoreB(s => s + 1);
-            } else if (swipeDistance < -minSwipeDistance) {
-                // GEST W LEWO (Przesunięcie w stronę lewej krawędzi) -> Dodajemy do A
-                setScoreA(s => s + 1);
+            const diffX = pointerEndX - pointerStartX;
+            const diffY = pointerEndY - pointerStartY; // Często te piloty robią swipe w dół/górę zamiast na boki
+
+            // 🛑 DEBUGGER GESTÓW: Jeśli pilot w ogóle nie dodaje punktów, odkomentuj linijkę poniżej.
+            // Pokaże Ci na ekranie, w jakiej osi i o ile pikseli pilot "przesuwa" palec.
+            // show({ title: 'Debug Pilot - Gest', description: `X: ${diffX.toFixed(0)}, Y: ${diffY.toFixed(0)}` });
+
+            // Próg 30 pikseli (żeby zignorować zwykłe kliknięcia)
+            if (Math.abs(diffX) > 30) {
+                // Gest poziomy
+                if (diffX > 0) setScoreB(s => s + 1); // W prawo
+                else setScoreA(s => s + 1); // W lewo
+            } else if (Math.abs(diffY) > 30) {
+                // Gest pionowy (czasami piloty do TikToka domyślnie robią swipe w dół/górę)
+                if (diffY > 0) setScoreB(s => s + 1); // W dół
+                else setScoreA(s => s + 1); // W górę
             }
         };
 
-        // Zabezpieczenie: czasami takie piloty na komputerze/telefonie potrafią wysyłać strzałki
         const handleKeyDown = (e: KeyboardEvent) => {
             if (isFinished) return;
-            
-            if (e.key === 'ArrowLeft') {
+
+            // 🛑 DEBUGGER KLAWISZY: Jeśli pilot udaje klawiaturę, odkomentuj to, żeby poznać nazwy przycisków
+            // show({ title: 'Debug Pilot - Klawisz', description: e.key });
+
+            // Piloty potrafią wysyłać różne dziwne klawisze, wyłapujemy najpopularniejsze:
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'MediaTrackPrevious') {
                 setScoreA(s => s + 1);
-            } else if (e.key === 'ArrowRight') {
+            } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'MediaTrackNext') {
                 setScoreB(s => s + 1);
             }
         };
 
-        // Podpinamy nasłuchiwanie na całej stronie
-        window.addEventListener('touchstart', handleTouchStart);
-        window.addEventListener('touchend', handleTouchEnd);
+        const handleWheel = (e: WheelEvent) => {
+            if (isFinished) return;
+            // 🛑 DEBUGGER SCROLLA: Niektóre piloty udają kółko od myszy
+            // show({ title: 'Debug Pilot - Scroll', description: `deltaY: ${e.deltaY}` });
+        }
+
+        // Zmieniliśmy "touch" na "pointer", żeby wyłapywało symulacje myszki
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointerup', handlePointerUp);
         window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('wheel', handleWheel);
 
         return () => {
-            window.removeEventListener('touchstart', handleTouchStart);
-            window.removeEventListener('touchend', handleTouchEnd);
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('wheel', handleWheel);
         };
-    }, [isFinished]); // Ważne, żeby React odświeżał stan po zakończeniu meczu
+    }, [isFinished, show]); // Dodano 'show' do zależności
 
 
     // WIDOK 1: WYBÓR SKŁADÓW

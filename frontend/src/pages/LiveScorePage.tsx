@@ -68,10 +68,9 @@ export function LiveScorePage() {
     useEffect(() => {
         if (isLocked) {
             document.body.style.overflow = 'hidden'
-            document.body.style.overscrollBehavior = 'none' // Zatrzymuje "sprężynowanie" iOS
+            document.body.style.overscrollBehavior = 'none'
 
             const preventScroll = (e: TouchEvent) => {
-                // Zezwalamy na scroll/touch tylko w inputach (by dało się zmienić limit)
                 if ((e.target as HTMLElement).tagName !== 'INPUT') {
                     e.preventDefault()
                 }
@@ -108,47 +107,46 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-        // --- OBSŁUGA PILOTA (POINTER + KLAWISZE) ---
+    // --- OBSŁUGA PILOTA (GESTY SWIPE + STRZAŁKI ZABEZPIECZAJĄCE) ---
     useEffect(() => {
-        let pointerStartX = 0;
-        let pointerStartY = 0;
+        let startX = 0;
+        let startY = 0;
 
-        const handlePointerDown = (e: PointerEvent) => {
-            pointerStartX = e.clientX;
-            pointerStartY = e.clientY;
+        const handleTouchStart = (e: TouchEvent) => {
+            // Zabezpieczenie przed błędem, gdy nie ma danych o dotyku
+            if (!e.changedTouches || e.changedTouches.length === 0) return;
+            startX = e.changedTouches[0].screenX;
+            startY = e.changedTouches[0].screenY;
         };
 
-        const handlePointerUp = (e: PointerEvent) => {
+        const handleTouchEnd = (e: TouchEvent) => {
             if (isFinished) return;
-            const pointerEndX = e.clientX;
-            const pointerEndY = e.clientY;
+            if (!e.changedTouches || e.changedTouches.length === 0) return;
+            
+            const endX = e.changedTouches[0].screenX;
+            const endY = e.changedTouches[0].screenY;
 
-            const diffX = pointerEndX - pointerStartX;
-            const diffY = pointerEndY - pointerStartY; // Często te piloty robią swipe w dół/górę zamiast na boki
+            const diffX = endX - startX;
+            const diffY = endY - startY;
 
-            // 🛑 DEBUGGER GESTÓW: Jeśli pilot w ogóle nie dodaje punktów, odkomentuj linijkę poniżej.
-            // Pokaże Ci na ekranie, w jakiej osi i o ile pikseli pilot "przesuwa" palec.
-            // show({ title: 'Debug Pilot - Gest', description: `X: ${diffX.toFixed(0)}, Y: ${diffY.toFixed(0)}` });
-
-            // Próg 30 pikseli (żeby zignorować zwykłe kliknięcia)
+            // Próg 30 pikseli zapobiega reakcji na normalne "tapnięcie" w ekran
             if (Math.abs(diffX) > 30) {
-                // Gest poziomy
-                if (diffX > 0) setScoreB(s => s + 1); // W prawo
-                else setScoreA(s => s + 1); // W lewo
+                if (diffX > 0) {
+                    setScoreB(s => s + 1); // Przesunięcie w PRAWO (Dodaje Drużynie B)
+                } else {
+                    setScoreA(s => s + 1); // Przesunięcie w LEWO (Dodaje Drużynie A)
+                }
             } else if (Math.abs(diffY) > 30) {
-                // Gest pionowy (czasami piloty do TikToka domyślnie robią swipe w dół/górę)
-                if (diffY > 0) setScoreB(s => s + 1); // W dół
-                else setScoreA(s => s + 1); // W górę
+                // Niektóre piloty potrafią domyślnie "scrollować" w pionie (np. jako przesuwanie TikToka)
+                // W takim razie: w dół = B, w górę = A
+                if (diffY > 0) setScoreB(s => s + 1);
+                else setScoreA(s => s + 1);
             }
         };
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (isFinished) return;
-
-            // 🛑 DEBUGGER KLAWISZY: Jeśli pilot udaje klawiaturę, odkomentuj to, żeby poznać nazwy przycisków
-            // show({ title: 'Debug Pilot - Klawisz', description: e.key });
-
-            // Piloty potrafią wysyłać różne dziwne klawisze, wyłapujemy najpopularniejsze:
+            // Dodatkowe wyłapywanie klawiszy, gdyby pilot udawał klawiaturę
             if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'MediaTrackPrevious') {
                 setScoreA(s => s + 1);
             } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'MediaTrackNext') {
@@ -156,25 +154,17 @@ export function LiveScorePage() {
             }
         };
 
-        const handleWheel = (e: WheelEvent) => {
-            if (isFinished) return;
-            // 🛑 DEBUGGER SCROLLA: Niektóre piloty udają kółko od myszy
-            // show({ title: 'Debug Pilot - Scroll', description: `deltaY: ${e.deltaY}` });
-        }
-
-        // Zmieniliśmy "touch" na "pointer", żeby wyłapywało symulacje myszki
-        window.addEventListener('pointerdown', handlePointerDown);
-        window.addEventListener('pointerup', handlePointerUp);
+        // Nasłuchiwanie systemowych zdarzeń dotykowych
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchend', handleTouchEnd);
         window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('wheel', handleWheel);
 
         return () => {
-            window.removeEventListener('pointerdown', handlePointerDown);
-            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchend', handleTouchEnd);
             window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('wheel', handleWheel);
         };
-    }, [isFinished, show]); // Dodano 'show' do zależności
+    }, [isFinished]);
 
 
     // WIDOK 1: WYBÓR SKŁADÓW
@@ -220,13 +210,10 @@ export function LiveScorePage() {
 
     // WIDOK 2: TABLICA WYNIKÓW
     return (
-        // KLUCZOWE: h-[calc(100dvh-130px)] wymusza zmieszczenie się na ekranie gdy mecz trwa.
-        // Jeśli jest isFinished, puszczamy wysokość auto, by wyświetlił się panel zapisu.
         <div className={cn(
             "flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto",
             !isFinished && "h-[calc(100dvh-130px)] sm:h-auto min-h-[250px]"
         )}>
-            {/* Ustawienia meczu - shrink-0 zabrania temu elementowi się kompresować */}
             <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-2 sm:p-4 rounded-lg border border-[var(--color-border)] shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-widest hidden sm:block">Live Score</div>
@@ -236,7 +223,6 @@ export function LiveScorePage() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {/* KLUCZOWE: onPointerDown sprawia, że przycisk reaguje natychmiast na dotyk palcem */}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -260,9 +246,7 @@ export function LiveScorePage() {
                 </div>
             </div>
 
-            {/* GŁÓWNA TABLICA - flex-1 min-h-0 pozwala kompresować ten obszar w zależności od ekranu */}
             <div className={cn("grid grid-cols-2 gap-2 sm:gap-4", !isFinished && "flex-1 min-h-0")}>
-
                 {/* Drużyna A */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'A' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
                     <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
@@ -276,7 +260,6 @@ export function LiveScorePage() {
                         </div>
                     </div>
 
-                    {/* KLUCZOWE: Usunięto min-h-[...px]. flex-1 i min-h-0 idealnie ściskają obszar na telefonach */}
                     <button
                         onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}
@@ -325,10 +308,8 @@ export function LiveScorePage() {
                         </Button>
                     </div>
                 </div>
-
             </div>
 
-            {/* Panel zapisu (pojawia się gdy jest zwycięzca) */}
             {isFinished && (
                 <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)] p-4 sm:p-6 rounded-xl text-center animate-in slide-in-from-bottom-4 zoom-in-95 mt-2 sm:mt-4 shrink-0">
                     <h2 className="text-xl sm:text-2xl font-black text-[var(--color-accent)] mb-2">Mecz zakończony!</h2>

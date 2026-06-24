@@ -108,63 +108,89 @@ export function LiveScorePage() {
     }
 
     // --- OBSŁUGA PILOTA (GESTY SWIPE + STRZAŁKI ZABEZPIECZAJĄCE) ---
+    // --- OBSŁUGA PILOTA (ABSOLUTNIE WSZYSTKIE MOŻLIWE SYGNAŁY + TOAST DEBUG) ---
     useEffect(() => {
         let startX = 0;
         let startY = 0;
 
-        const handleTouchStart = (e: TouchEvent) => {
-            // Zabezpieczenie przed błędem, gdy nie ma danych o dotyku
-            if (!e.changedTouches || e.changedTouches.length === 0) return;
-            startX = e.changedTouches[0].screenX;
-            startY = e.changedTouches[0].screenY;
+        // 1. GESTY (Myszka / Palec / Symulacja przeciągnięcia)
+        const handlePointerDown = (e: PointerEvent) => {
+            startX = e.clientX;
+            startY = e.clientY;
         };
 
-        const handleTouchEnd = (e: TouchEvent) => {
+        const handlePointerUp = (e: PointerEvent) => {
             if (isFinished) return;
-            if (!e.changedTouches || e.changedTouches.length === 0) return;
-            
-            const endX = e.changedTouches[0].screenX;
-            const endY = e.changedTouches[0].screenY;
+            const endX = e.clientX;
+            const endY = e.clientY;
 
             const diffX = endX - startX;
             const diffY = endY - startY;
 
-            // Próg 30 pikseli zapobiega reakcji na normalne "tapnięcie" w ekran
-            if (Math.abs(diffX) > 30) {
-                if (diffX > 0) {
-                    setScoreB(s => s + 1); // Przesunięcie w PRAWO (Dodaje Drużynie B)
-                } else {
-                    setScoreA(s => s + 1); // Przesunięcie w LEWO (Dodaje Drużynie A)
-                }
-            } else if (Math.abs(diffY) > 30) {
-                // Niektóre piloty potrafią domyślnie "scrollować" w pionie (np. jako przesuwanie TikToka)
-                // W takim razie: w dół = B, w górę = A
-                if (diffY > 0) setScoreB(s => s + 1);
-                else setScoreA(s => s + 1);
+            // Wyświetlamy komunikat, żebyś widział wartości na telefonie
+            if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+                show({ 
+                    title: '🕵️ Pilot: Wykryto GEST', 
+                    description: `Przesunięcie w poziomie (X): ${diffX.toFixed(0)}, w pionie (Y): ${diffY.toFixed(0)}`,
+                });
+            }
+
+            const threshold = 15; // Zmniejszamy próg czułości do 15 pikseli
+            if (Math.abs(diffX) > threshold) {
+                if (diffX > 0) setScoreB(s => s + 1); // Ruch w prawo -> Punkt dla B
+                else setScoreA(s => s + 1);          // Ruch w lewo -> Punkt dla A
+            } else if (Math.abs(diffY) > threshold) {
+                if (diffY > 0) setScoreB(s => s + 1); // Ruch w dół -> Punkt dla B
+                else setScoreA(s => s + 1);          // Ruch w górę -> Punkt dla A
             }
         };
 
+        // 2. KLAWIATURA (Jeśli pilot wysyła ukryte kody klawiszy)
         const handleKeyDown = (e: KeyboardEvent) => {
             if (isFinished) return;
-            // Dodatkowe wyłapywanie klawiszy, gdyby pilot udawał klawiaturę
-            if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'MediaTrackPrevious') {
+
+            show({ 
+                title: '⌨️ Pilot: Wykryto KLAWISZ', 
+                description: `Nazwa klawisza: "${e.key}" (kod: ${e.code})`,
+            });
+
+            // Obsługa najpopularniejszych standardów (Strzałki, głośność, zmiana utworów, strony)
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'MediaTrackPrevious' || e.key === 'VolumeDown' || e.key === 'AudioVolumeDown') {
                 setScoreA(s => s + 1);
-            } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'MediaTrackNext') {
+            } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'MediaTrackNext' || e.key === 'VolumeUp' || e.key === 'AudioVolumeUp') {
                 setScoreB(s => s + 1);
             }
         };
 
-        // Nasłuchiwanie systemowych zdarzeń dotykowych
-        window.addEventListener('touchstart', handleTouchStart);
-        window.addEventListener('touchend', handleTouchEnd);
+        // 3. ROLKA MYSZKI (Scroll) - Bardzo częsty emulator w pierścieniach Bluetooth
+        const handleWheel = (e: WheelEvent) => {
+            if (isFinished) return;
+
+            show({ 
+                title: '🖱️ Pilot: Wykryto SCROLL (Kółko)', 
+                description: `Pionowo (deltaY): ${e.deltaY.toFixed(0)}, Poziomo (deltaX): ${e.deltaX.toFixed(0)}`,
+            });
+
+            if (e.deltaX > 0 || e.deltaY > 0) {
+                setScoreB(s => s + 1); // Przewijanie w dół / w prawo -> Punkt dla B
+            } else if (e.deltaX < 0 || e.deltaY < 0) {
+                setScoreA(s => s + 1); // Przewijanie w górę / w lewo -> Punkt dla A
+            }
+        };
+
+        // Rejestrujemy wszystkie 3 globalne typy zdarzeń
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointerup', handlePointerUp);
         window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('wheel', handleWheel, { passive: true });
 
         return () => {
-            window.removeEventListener('touchstart', handleTouchStart);
-            window.removeEventListener('touchend', handleTouchEnd);
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('wheel', handleWheel);
         };
-    }, [isFinished]);
+    }, [isFinished, show]);
 
 
     // WIDOK 1: WYBÓR SKŁADÓW

@@ -26,12 +26,20 @@ export function LiveScorePage() {
     const [scoreB, setScoreB] = useState(0)
     const [targetScore, setTargetScore] = useState(25)
 
+    // NOWE: Stan przechowujący informację, kto zagrywa
+    const [currentServer, setCurrentServer] = useState<'A' | 'B' | null>(null)
+
     // Odbieranie wylosowanych składów
     useEffect(() => {
-        const state = location.state as { teamAIds?: string[], teamBIds?: string[] } | null
+        const state = location.state as { teamAIds?: string[], teamBIds?: string[], startingTeam?: 'A' | 'B' } | null
         if (state?.teamAIds && state?.teamBIds && state.teamAIds.length > 0 && state.teamBIds.length > 0) {
             setTeamAIds(state.teamAIds)
             setTeamBIds(state.teamBIds)
+
+            if (state.startingTeam) {
+                setCurrentServer(state.startingTeam)
+            }
+
             setMatchStarted(true)
             window.history.replaceState({}, document.title)
         }
@@ -50,6 +58,7 @@ export function LiveScorePage() {
             setMatchStarted(false)
             setTeamAIds([])
             setTeamBIds([])
+            setCurrentServer(null)
             navigate('/history')
         },
         onError: (err: Error) => show({ title: 'Błąd', description: err.message, variant: 'error' }),
@@ -107,67 +116,6 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
-        // --- OSTATECZNA, PANCERNA OBSŁUGA PILOTA (TOUCHMOVE + RUBBER-
-        // --- OBSŁUGA PILOTA (BLOKADA SAFARI + DETEKCJA POŁOWY EKRANU) ---
-    useEffect(() => {
-        // KLUCZ: To wyłącza natywne zachowania iOS (np. próbę przewijania ekranu pilotem)
-        document.body.style.touchAction = 'none';
-
-        let startX = 0;
-        let lastX = 0;
-        let isSwiping = false;
-
-        const handlePointerDown = (e: PointerEvent) => {
-            startX = e.clientX;
-            lastX = startX;
-            isSwiping = false;
-        };
-
-        const handlePointerMove = (e: PointerEvent) => {
-            lastX = e.clientX;
-            
-            // Jeśli palec/pilot przesunął się o więcej niż 20px, uznajemy to za celowy gest
-            if (Math.abs(lastX - startX) > 20) {
-                isSwiping = true;
-            }
-        };
-
-        const handlePointerUp = () => {
-            if (isFinished) return;
-            
-            if (isSwiping) {
-                const screenWidth = window.innerWidth;
-                
-                // Jeśli gest zakończył się w lewej połowie ekranu
-                if (lastX < screenWidth / 2) {
-                    setScoreA(s => s + 1); 
-                } 
-                // Jeśli gest zakończył się w prawej połowie ekranu
-                else {
-                    setScoreB(s => s + 1);
-                }
-            }
-            isSwiping = false; // Reset po puszczeniu przycisku
-        };
-
-        // Pointer eventy obsługują jednocześnie dotyk i symulowane myszki/piloty
-        window.addEventListener('pointerdown', handlePointerDown);
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-
-        return () => {
-            // Sprzątamy po wyjściu z meczu, żeby reszta aplikacji mogła się przewijać
-            document.body.style.touchAction = '';
-            window.removeEventListener('pointerdown', handlePointerDown);
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-        };
-    }, [isFinished]);
-
-
-
-
-
     // WIDOK 1: WYBÓR SKŁADÓW
     if (!matchStarted) {
         return (
@@ -211,10 +159,8 @@ export function LiveScorePage() {
 
     // WIDOK 2: TABLICA WYNIKÓW
     return (
-        <div className={cn(
-            "flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto",
-            !isFinished && "h-[calc(100dvh-130px)] sm:h-auto min-h-[250px]"
-        )}>
+        // ZMIANA: Usunięto sztywne h-[calc...] i dodano pb-10 dla naturalnego scrollowania
+        <div className="flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto pb-10">
             <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-2 sm:p-4 rounded-lg border border-[var(--color-border)] shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-widest hidden sm:block">Live Score</div>
@@ -247,11 +193,15 @@ export function LiveScorePage() {
                 </div>
             </div>
 
-            <div className={cn("grid grid-cols-2 gap-2 sm:gap-4", !isFinished && "flex-1 min-h-0")}>
+            {/* ZMIANA: Usunięto flex-1 min-h-0 */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 {/* Drużyna A */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'A' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
                     <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
-                        <h3 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna A</h3>
+                        {/* ZMIANA: Wskaźnik zagrywki */}
+                        <h3 className="flex items-center justify-center gap-1 text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">
+                            Drużyna A {currentServer === 'A' && <span title="Pierwsza zagrywka">🏐</span>}
+                        </h3>
                         <div className="flex flex-wrap justify-center gap-1">
                             {teamAIds.map(id => (
                                 <span key={id} className="text-[9px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
@@ -261,13 +211,11 @@ export function LiveScorePage() {
                         </div>
                     </div>
 
+                    {/* ZMIANA: Sztywny padding zamiast flex-1 (np. py-24 sm:py-32) dla naturalnego układu */}
                     <button
                         onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}
-                        className={cn(
-                            "flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation",
-                            !isFinished ? "flex-1 min-h-0 py-2" : "py-16 sm:py-24"
-                        )}
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreA}</span>
                     </button>
@@ -282,7 +230,10 @@ export function LiveScorePage() {
                 {/* Drużyna B */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'B' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
                     <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
-                        <h3 className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">Drużyna B</h3>
+                        {/* ZMIANA: Wskaźnik zagrywki */}
+                        <h3 className="flex items-center justify-center gap-1 text-[10px] sm:text-sm font-black uppercase tracking-widest text-[var(--color-muted)] mb-1 sm:mb-2">
+                            Drużyna B {currentServer === 'B' && <span title="Pierwsza zagrywka">🏐</span>}
+                        </h3>
                         <div className="flex flex-wrap justify-center gap-1">
                             {teamBIds.map(id => (
                                 <span key={id} className="text-[9px] sm:text-[10px] bg-[var(--color-background)] px-1.5 sm:px-2 py-0.5 rounded border border-[var(--color-border)] truncate max-w-full">
@@ -292,13 +243,11 @@ export function LiveScorePage() {
                         </div>
                     </div>
 
+                    {/* ZMIANA: Sztywny padding zamiast flex-1 */}
                     <button
                         onClick={() => !isFinished && setScoreB(s => s + 1)}
                         disabled={isFinished}
-                        className={cn(
-                            "flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation",
-                            !isFinished ? "flex-1 min-h-0 py-2" : "py-16 sm:py-24"
-                        )}
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreB}</span>
                     </button>

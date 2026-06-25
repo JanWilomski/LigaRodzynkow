@@ -170,7 +170,7 @@ export default function DrawPage() {
                                 <span className="text-sm text-[var(--color-muted)] font-medium">Pierwsza zagrywka:</span>
                                 <span className={cn(
                                     "px-3 py-1 rounded text-xs font-black uppercase tracking-wider text-white shadow-sm",
-                                    startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500"
+                                    startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500" 
                                 )}>
                                     Drużyna {startingTeam} 🏐
                                 </span>

@@ -16,7 +16,7 @@ interface DrawnTeams {
 export default function DrawPage() {
     const { show } = useToast()
     const queryClient = useQueryClient()
-    const navigate = useNavigate() // <--- BRAKOWAŁO TEJ LINIJKI!
+    const navigate = useNavigate()
 
     const [startingTeam, setStartingTeam] = useState<'A' | 'B' | null>(null);
 
@@ -167,7 +167,7 @@ export default function DrawPage() {
                     <div className="p-6 space-y-6">
                         {startingTeam && (
                             <div className="flex items-center justify-center gap-2 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] animate-in fade-in slide-in-from-top-2">
-                                <span className="text-sm text-[var(--color-muted)] font-medium">Pierwsza zagrywka:</span>
+                                <span className="text-sm text-[var(--color-muted)] font-medium">Zaczyna:</span>
                                 <span className={cn(
                                     "px-3 py-1 rounded text-xs font-black uppercase tracking-wider text-white shadow-sm",
                                     startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500" 
@@ -185,7 +185,6 @@ export default function DrawPage() {
                                     <h4 className="text-sm font-bold">Uwaga: Deja vu!</h4>
                                     <p className="text-xs mt-1">
                                         Dokładnie takie same składy grały już ze sobą w jednym z 5 ostatnich meczów.
-                                        Zalecamy kliknąć "Ponów losowanie" w prawym górnym rogu, by uniknąć nudy.
                                     </p>
                                 </div>
                             </div>

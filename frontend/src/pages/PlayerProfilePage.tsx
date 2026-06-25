@@ -196,7 +196,7 @@ export function PlayerProfilePage() {
                     <CardHeader className="pb-3 border-b border-[var(--color-border)]">
                         <CardTitle className="text-sm flex items-center gap-2 text-[var(--color-muted)] uppercase tracking-wider">
                             <TrendingUp className="size-4" />
-                            Forma (5 ostatnich gier)
+                            Forma (5 ostatnich dni)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">

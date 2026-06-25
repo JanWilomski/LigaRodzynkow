@@ -393,6 +393,42 @@ public class PlayersController : ControllerBase
 
         achievements = achievements.Distinct().ToList();
         // ====================================================
+        
+        // ================= DZIEŃ PO DNIU (ZMIANY WINRATE) =================
+        var dailyWinrateChanges = new List<DailyWinrateChangeDto>();
+        int runningGames = 0;
+        int runningWins = 0;
+        double previousWinrate = 0.0;
+
+        var gamesByDay = chronologicalGames.GroupBy(g => g.Game.PlayedAt.Date).OrderBy(g => g.Key);
+
+        foreach (var dailyGamesGroup in gamesByDay)
+        {
+            foreach (var gp in dailyGamesGroup)
+            {
+                bool won = (gp.Team == Team.A && gp.Game.TeamAScore > gp.Game.TeamBScore) ||
+                           (gp.Team == Team.B && gp.Game.TeamBScore > gp.Game.TeamAScore);
+                if (won) runningWins++;
+                runningGames++;
+            }
+
+            double currentWinrate = (double)runningWins / runningGames * 100;
+
+            if (runningGames == dailyGamesGroup.Count()) 
+            {
+                dailyWinrateChanges.Add(new DailyWinrateChangeDto(dailyGamesGroup.Key, 0));
+            }
+            else
+            {
+                double change = currentWinrate - previousWinrate;
+                dailyWinrateChanges.Add(new DailyWinrateChangeDto(dailyGamesGroup.Key, Math.Round(change, 2)));
+            }
+            previousWinrate = currentWinrate;
+        }
+
+        // BIERZEMY TYLKO 5 OSTATNICH DNI GRAJĄCEGO
+        var recentWinrateChanges = dailyWinrateChanges.TakeLast(5).ToList();
+        // ==================================================================
 
         var result = new PlayerProfileDto(
             player.Id,
@@ -412,7 +448,8 @@ public class PlayersController : ControllerBase
                 .Select(kvp => new EntityStatDto(kvp.Key, kvp.Value.Name, kvp.Value.Played, kvp.Value.Won, (double)kvp.Value.Won/kvp.Value.Played))
                 .ToList(),
             winrateHistory,
-            achievements
+            achievements,
+            recentWinrateChanges
         );
 
         return Ok(result);

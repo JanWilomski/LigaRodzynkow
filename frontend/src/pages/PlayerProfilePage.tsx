@@ -190,6 +190,48 @@ export function PlayerProfilePage() {
                     </CardContent>
                 </Card>
             )}
+            {/* TABELA ZMIAN WINRATE (5 OSTATNICH DNI) */}
+            {p.recentWinrateChanges && p.recentWinrateChanges.length > 0 && (
+                <Card>
+                    <CardHeader className="pb-3 border-b border-[var(--color-border)]">
+                        <CardTitle className="text-sm flex items-center gap-2 text-[var(--color-muted)] uppercase tracking-wider">
+                            <TrendingUp className="size-4" />
+                            Forma (5 ostatnich gier)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-hidden">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-[var(--color-surface-elevated)] text-[var(--color-muted)] text-[10px] sm:text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">Data</th>
+                                    <th className="px-4 py-3 font-medium text-right">Zmiana WR</th>
+                                </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--color-border)]">
+                                {p.recentWinrateChanges.map((day, idx) => (
+                                    <tr key={idx} className="bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] transition-colors">
+                                        <td className="px-4 py-3 text-[var(--color-foreground)] font-medium">
+                                            {new Date(day.date).toLocaleDateString('pl-PL', {
+                                                day: '2-digit',
+                                                month: 'long',
+                                                year: 'numeric'
+                                            })}
+                                        </td>
+                                        <td className={cn(
+                                            "px-4 py-3 text-right font-black tabular-nums",
+                                            day.change > 0 ? "text-emerald-500" : day.change < 0 ? "text-rose-500" : "text-slate-500"
+                                        )}>
+                                            {day.change > 0 ? '+' : ''}{day.change.toFixed(2)} pp
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Sekcja: Historia meczów (bez zmian) */}
             <Card>

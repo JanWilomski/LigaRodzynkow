@@ -58,6 +58,11 @@ export interface WinrateHistoryPoint {
     winrate: number;
 }
 
+export interface DailyWinrateChange {
+    date: string;
+    change: number;
+}
+
 export interface PlayerProfile {
     id: string;
     name: string;
@@ -73,6 +78,7 @@ export interface PlayerProfile {
     recentGames: Game[];
     winrateHistory: WinrateHistoryPoint[];
     achievements: string[];
+    recentWinrateChanges: DailyWinrateChange[];
 }
 
 export interface EntityStat {

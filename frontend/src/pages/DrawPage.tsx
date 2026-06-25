@@ -18,6 +18,8 @@ export default function DrawPage() {
     const queryClient = useQueryClient()
     const navigate = useNavigate() // <--- BRAKOWAŁO TEJ LINIJKI!
 
+    const [startingTeam, setStartingTeam] = useState<'A' | 'B' | null>(null);
+
     // Pobieramy graczy
     const { data: players } = useQuery({
         queryKey: ['players'],
@@ -72,6 +74,9 @@ export default function DrawPage() {
         })
         setScoreA('')
         setScoreB('')
+
+        const randomStart = Math.random() < 0.5 ? 'A' : 'B';
+        setStartingTeam(randomStart);
     }
 
     const handleSaveMatch = () => {
@@ -160,6 +165,17 @@ export default function DrawPage() {
                     </div>
 
                     <div className="p-6 space-y-6">
+                        {startingTeam && (
+                            <div className="flex items-center justify-center gap-2 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] animate-in fade-in slide-in-from-top-2">
+                                <span className="text-sm text-[var(--color-muted)] font-medium">Pierwsza zagrywka:</span>
+                                <span className={cn(
+                                    "px-3 py-1 rounded text-xs font-black uppercase tracking-wider text-white shadow-sm",
+                                    startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500"
+                                )}>
+                                    Drużyna {startingTeam} 🏐
+                                </span>
+                            </div>
+                        )}
 
                         {/* ALERT: Ostrzeżenie o powtórce */}
                         {hasPlayedRecently && (
@@ -226,7 +242,7 @@ export default function DrawPage() {
                                 className="flex-1 h-12 gap-2 border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
                                 onClick={() => {
                                     // Nawigujemy do tablicy na żywo przekazując składy
-                                    navigate('/live', { state: { teamAIds: drawnTeams.teamA, teamBIds: drawnTeams.teamB } })
+                                    navigate('/live', { state: { teamAIds: drawnTeams.teamA, teamBIds: drawnTeams.teamB, startingTeam: startingTeam } })
                                 }}
                             >
                                 <Activity className="size-5" /> Sędziuj na żywo

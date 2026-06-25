@@ -108,6 +108,7 @@ export function LiveScorePage() {
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
 
+
     // WIDOK 1: WYBÓR SKŁADÓW
     if (!matchStarted) {
         return (
@@ -151,8 +152,6 @@ export function LiveScorePage() {
 
     // WIDOK 2: TABLICA WYNIKÓW
     return (
-        // KLUCZOWE: h-[calc(100dvh-130px)] wymusza zmieszczenie się na ekranie gdy mecz trwa.
-        // Jeśli jest isFinished, puszczamy wysokość auto, by wyświetlił się panel zapisu.
         <div className={cn(
             "flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto",
             !isFinished && "h-[calc(100dvh-130px)] sm:h-auto min-h-[250px]"
@@ -167,7 +166,6 @@ export function LiveScorePage() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {/* KLUCZOWE: onPointerDown sprawia, że przycisk reaguje natychmiast na dotyk palcem */}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -207,7 +205,6 @@ export function LiveScorePage() {
                         </div>
                     </div>
 
-                    {/* KLUCZOWE: Usunięto min-h-[...px]. flex-1 i min-h-0 idealnie ściskają obszar na telefonach */}
                     <button
                         onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}

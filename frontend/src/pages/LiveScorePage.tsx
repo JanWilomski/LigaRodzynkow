@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -68,10 +68,9 @@ export function LiveScorePage() {
     useEffect(() => {
         if (isLocked) {
             document.body.style.overflow = 'hidden'
-            document.body.style.overscrollBehavior = 'none' // Zatrzymuje "sprężynowanie" iOS
+            document.body.style.overscrollBehavior = 'none'
 
             const preventScroll = (e: TouchEvent) => {
-                // Zezwalamy na scroll/touch tylko w inputach (by dało się zmienić limit)
                 if ((e.target as HTMLElement).tagName !== 'INPUT') {
                     e.preventDefault()
                 }
@@ -107,6 +106,66 @@ export function LiveScorePage() {
         setTeamBIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
         setTeamAIds((prev) => prev.filter((i) => i !== id))
     }
+
+        // --- OSTATECZNA, PANCERNA OBSŁUGA PILOTA (TOUCHMOVE + RUBBER-
+        // --- OBSŁUGA PILOTA (BLOKADA SAFARI + DETEKCJA POŁOWY EKRANU) ---
+    useEffect(() => {
+        // KLUCZ: To wyłącza natywne zachowania iOS (np. próbę przewijania ekranu pilotem)
+        document.body.style.touchAction = 'none';
+
+        let startX = 0;
+        let lastX = 0;
+        let isSwiping = false;
+
+        const handlePointerDown = (e: PointerEvent) => {
+            startX = e.clientX;
+            lastX = startX;
+            isSwiping = false;
+        };
+
+        const handlePointerMove = (e: PointerEvent) => {
+            lastX = e.clientX;
+            
+            // Jeśli palec/pilot przesunął się o więcej niż 20px, uznajemy to za celowy gest
+            if (Math.abs(lastX - startX) > 20) {
+                isSwiping = true;
+            }
+        };
+
+        const handlePointerUp = () => {
+            if (isFinished) return;
+            
+            if (isSwiping) {
+                const screenWidth = window.innerWidth;
+                
+                // Jeśli gest zakończył się w lewej połowie ekranu
+                if (lastX < screenWidth / 2) {
+                    setScoreA(s => s + 1); 
+                } 
+                // Jeśli gest zakończył się w prawej połowie ekranu
+                else {
+                    setScoreB(s => s + 1);
+                }
+            }
+            isSwiping = false; // Reset po puszczeniu przycisku
+        };
+
+        // Pointer eventy obsługują jednocześnie dotyk i symulowane myszki/piloty
+        window.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+
+        return () => {
+            // Sprzątamy po wyjściu z meczu, żeby reszta aplikacji mogła się przewijać
+            document.body.style.touchAction = '';
+            window.removeEventListener('pointerdown', handlePointerDown);
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+        };
+    }, [isFinished]);
+
+
+
 
 
     // WIDOK 1: WYBÓR SKŁADÓW
@@ -156,7 +215,6 @@ export function LiveScorePage() {
             "flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto",
             !isFinished && "h-[calc(100dvh-130px)] sm:h-auto min-h-[250px]"
         )}>
-            {/* Ustawienia meczu - shrink-0 zabrania temu elementowi się kompresować */}
             <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-2 sm:p-4 rounded-lg border border-[var(--color-border)] shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-widest hidden sm:block">Live Score</div>
@@ -189,9 +247,7 @@ export function LiveScorePage() {
                 </div>
             </div>
 
-            {/* GŁÓWNA TABLICA - flex-1 min-h-0 pozwala kompresować ten obszar w zależności od ekranu */}
             <div className={cn("grid grid-cols-2 gap-2 sm:gap-4", !isFinished && "flex-1 min-h-0")}>
-
                 {/* Drużyna A */}
                 <div className={cn("relative flex flex-col rounded-2xl border-2 overflow-hidden transition-colors", winner === 'A' ? "border-[var(--color-success)] bg-[var(--color-success)]/5" : "border-[var(--color-border)] bg-[var(--color-surface)]")}>
                     <div className="p-1 sm:p-4 text-center border-b border-[var(--color-border)]/50 shrink-0">
@@ -253,10 +309,8 @@ export function LiveScorePage() {
                         </Button>
                     </div>
                 </div>
-
             </div>
 
-            {/* Panel zapisu (pojawia się gdy jest zwycięzca) */}
             {isFinished && (
                 <div className="bg-[var(--color-surface)] border-2 border-[var(--color-accent)] p-4 sm:p-6 rounded-xl text-center animate-in slide-in-from-bottom-4 zoom-in-95 mt-2 sm:mt-4 shrink-0">
                     <h2 className="text-xl sm:text-2xl font-black text-[var(--color-accent)] mb-2">Mecz zakończony!</h2>

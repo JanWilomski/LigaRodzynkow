@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
@@ -13,12 +13,20 @@ interface DrawnTeams {
     teamB: string[]
 }
 
+// Funkcja pomocnicza do bezpiecznego ładowania z LocalStorage
+const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
+    try {
+        const item = localStorage.getItem(key)
+        return item ? JSON.parse(item) : defaultValue
+    } catch {
+        return defaultValue
+    }
+}
+
 export default function DrawPage() {
     const { show } = useToast()
     const queryClient = useQueryClient()
     const navigate = useNavigate()
-
-    const [startingTeam, setStartingTeam] = useState<'A' | 'B' | null>(null);
 
     // Pobieramy graczy
     const { data: players } = useQuery({
@@ -26,21 +34,61 @@ export default function DrawPage() {
         queryFn: api.getPlayers,
     })
 
-    // Pobieramy 5 ostatnich meczów do sprawdzenia powtórek
+    // Pobieramy 5 ostatnich meczów do sprawdzenia powtórek i auto-wyboru
     const { data: recentGames } = useQuery({
         queryKey: ['games', 5],
         queryFn: () => api.getGames(5),
     })
 
-    // Stan wyboru graczy i losowania
-    const [selectedIds, setSelectedIds] = useState<string[]>([])
-    const [drawnTeams, setDrawnTeams] = useState<DrawnTeams | null>(null)
+    // --- STANY (Z INICJALIZACJĄ Z LOCALSTORAGE) ---
+    const [selectedIds, setSelectedIds] = useState<string[]>(() => loadFromStorage('draw_selectedIds', []))
+    const [drawnTeams, setDrawnTeams] = useState<DrawnTeams | null>(() => loadFromStorage('draw_teams', null))
+    const [startingTeam, setStartingTeam] = useState<'A' | 'B' | null>(() => loadFromStorage('draw_starting', null))
 
-    // Stan wyniku
+    // Stany wyników nie muszą być zapamiętywane (raczej wpisujemy je jednorazowo)
     const [scoreA, setScoreA] = useState<number | ''>('')
     const [scoreB, setScoreB] = useState<number | ''>('')
 
-    // Mutacja do zapisu meczu
+    // Flaga sprawdzająca, czy użytkownik ma już cokolwiek zapisanego w pamięci
+    const [autoPopulated, setAutoPopulated] = useState(() => !!localStorage.getItem('draw_selectedIds'))
+
+    // --- AUTO-WYBÓR GRACZY Z OSTATNIEGO MECZU ---
+    useEffect(() => {
+        // Jeśli nie mamy nic w pamięci i dane o meczach już się załadowały
+        if (!autoPopulated && recentGames && recentGames.length > 0) {
+            const lastGame = recentGames[0];
+            // Wyciągamy ID wszystkich graczy z ostatniego meczu
+            const lastPlayers = [
+                ...lastGame.teamA.map((p: any) => p.id),
+                ...lastGame.teamB.map((p: any) => p.id)
+            ];
+            setSelectedIds(lastPlayers);
+            setAutoPopulated(true); // Oznaczamy, że auto-wybór już się odbył
+        }
+    }, [recentGames, autoPopulated])
+
+    // --- ZAPISYWANIE DO LOCALSTORAGE W TLE ---
+    useEffect(() => {
+        localStorage.setItem('draw_selectedIds', JSON.stringify(selectedIds))
+    }, [selectedIds])
+
+    useEffect(() => {
+        if (drawnTeams) {
+            localStorage.setItem('draw_teams', JSON.stringify(drawnTeams))
+        } else {
+            localStorage.removeItem('draw_teams') // Czyszczenie po usunięciu
+        }
+    }, [drawnTeams])
+
+    useEffect(() => {
+        if (startingTeam) {
+            localStorage.setItem('draw_starting', JSON.stringify(startingTeam))
+        } else {
+            localStorage.removeItem('draw_starting')
+        }
+    }, [startingTeam])
+
+    // Mutacja do zapisu meczu z palca
     const createMutation = useMutation({
         mutationFn: api.createGame,
         onSuccess: () => {
@@ -50,6 +98,10 @@ export default function DrawPage() {
             show({ title: 'Mecz zapisany!', variant: 'success' })
             setScoreA('')
             setScoreB('')
+
+            // Po zapisaniu z palca czyścimy wylosowane składy, by ekran znów był czysty (ale zostawiamy selectedIds!)
+            setDrawnTeams(null)
+            setStartingTeam(null)
         },
         onError: (err: Error) => {
             show({ title: 'Błąd zapisu', description: err.message, variant: 'error' })
@@ -98,16 +150,13 @@ export default function DrawPage() {
     const hasPlayedRecently = useMemo(() => {
         if (!drawnTeams || !recentGames) return false;
 
-        // Sortujemy ID graczy i łączymy w stringa, aby łatwo porównać "zestawy" osób
         const drawnSetA = [...drawnTeams.teamA].sort().join(',');
         const drawnSetB = [...drawnTeams.teamB].sort().join(',');
 
         return recentGames.some(game => {
-            const gameSetA = game.teamA.map(p => p.id).sort().join(',');
-            const gameSetB = game.teamB.map(p => p.id).sort().join(',');
+            const gameSetA = game.teamA.map((p: any) => p.id).sort().join(',');
+            const gameSetB = game.teamB.map((p: any) => p.id).sort().join(',');
 
-            // Sprawdzamy czy drużyny są identyczne (A vs A i B vs B) 
-            // LUB czy są zamienione stronami (A vs B i B vs A)
             return (drawnSetA === gameSetA && drawnSetB === gameSetB) ||
                 (drawnSetA === gameSetB && drawnSetB === gameSetA);
         });
@@ -165,12 +214,14 @@ export default function DrawPage() {
                     </div>
 
                     <div className="p-6 space-y-6">
+
+                        {/* WSKAZANIE PIERWSZEJ ZAGRYWKI */}
                         {startingTeam && (
                             <div className="flex items-center justify-center gap-2 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] animate-in fade-in slide-in-from-top-2">
-                                <span className="text-sm text-[var(--color-muted)] font-medium">Zaczyna:</span>
+                                <span className="text-sm text-[var(--color-muted)] font-medium">Pierwsza zagrywka:</span>
                                 <span className={cn(
                                     "px-3 py-1 rounded text-xs font-black uppercase tracking-wider text-white shadow-sm",
-                                    startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500" 
+                                    startingTeam === 'A' ? "bg-blue-500" : "bg-indigo-500"
                                 )}>
                                     Drużyna {startingTeam} 🏐
                                 </span>
@@ -185,6 +236,7 @@ export default function DrawPage() {
                                     <h4 className="text-sm font-bold">Uwaga: Deja vu!</h4>
                                     <p className="text-xs mt-1">
                                         Dokładnie takie same składy grały już ze sobą w jednym z 5 ostatnich meczów.
+                                        Zalecamy kliknąć "Ponów losowanie" w prawym górnym rogu, by uniknąć nudy.
                                     </p>
                                 </div>
                             </div>
@@ -197,8 +249,8 @@ export default function DrawPage() {
                                 <div className="flex flex-wrap justify-center gap-2">
                                     {drawnTeams.teamA.map(id => (
                                         <span key={id} className="px-3 py-1 bg-[var(--color-background)] border border-[var(--color-border)] rounded text-sm font-bold">
-                      {players?.find(p => p.id === id)?.name}
-                    </span>
+                                            {players?.find(p => p.id === id)?.name}
+                                        </span>
                                     ))}
                                 </div>
                                 <Input
@@ -220,8 +272,8 @@ export default function DrawPage() {
                                 <div className="flex flex-wrap justify-center gap-2">
                                     {drawnTeams.teamB.map(id => (
                                         <span key={id} className="px-3 py-1 bg-[var(--color-background)] border border-[var(--color-border)] rounded text-sm font-bold">
-                      {players?.find(p => p.id === id)?.name}
-                    </span>
+                                            {players?.find(p => p.id === id)?.name}
+                                        </span>
                                     ))}
                                 </div>
                                 <Input
@@ -240,7 +292,6 @@ export default function DrawPage() {
                                 variant="secondary"
                                 className="flex-1 h-12 gap-2 border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
                                 onClick={() => {
-                                    // Nawigujemy do tablicy na żywo przekazując składy
                                     navigate('/live', { state: { teamAIds: drawnTeams.teamA, teamBIds: drawnTeams.teamB, startingTeam: startingTeam } })
                                 }}
                             >

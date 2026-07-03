@@ -12,8 +12,8 @@ export function RankingPage() {
     })
 
     const { data: games } = useQuery({
-        queryKey: ['games'],
-        queryFn: () => api.getGames(),
+        queryKey: ['games', 1000],
+        queryFn: () => api.getGames(1000),
     })
 
     const { data: duos } = useQuery({

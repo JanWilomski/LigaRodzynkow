@@ -1,4 +1,4 @@
-﻿using LigaRodzynkow.Data;
+using LigaRodzynkow.Data;
 using LigaRodzynkow.Dtos;
 using LigaRodzynkow.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +19,9 @@ public class GamesController : ControllerBase
 
     // GET /api/games
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<GameDto>>> GetGames([FromQuery] int limit = 20)
+    public async Task<ActionResult<IEnumerable<GameDto>>> GetGames([FromQuery] int limit = 900)
     {
-        var maxLimit = Math.Min(limit, 100);
+        var maxLimit = Math.Min(limit, 1000);
 
         var games = await _context.Games
             .Include(g => g.GamePlayers)

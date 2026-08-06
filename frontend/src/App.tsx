@@ -7,7 +7,6 @@ import { HistoryPage } from '@/pages/HistoryPage'
 import { LiveScorePage } from '@/pages/LiveScorePage'
 import DrawPage from "@/pages/DrawPage"
 import { PlayerProfilePage } from "@/pages/PlayerProfilePage"
-import { RemoteTestPage } from '@/pages/RemoteTestPage'
 import { ToastProvider } from '@/components/ui/Toast'
 
 const queryClient = new QueryClient({
@@ -21,22 +20,21 @@ const queryClient = new QueryClient({
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<RankingPage />} />
-              <Route path="players" element={<PlayersPage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="draw" element={<DrawPage />} />
-              <Route path="players/:id" element={<PlayerProfilePage />} />
-              <Route path="live" element={<LiveScorePage />} />
-              <Route path="test" element={<RemoteTestPage />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </ToastProvider>
-    </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<RankingPage />} />
+                <Route path="players" element={<PlayersPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="draw" element={<DrawPage />} />
+                <Route path="players/:id" element={<PlayerProfilePage />} />
+                <Route path="live" element={<LiveScorePage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </QueryClientProvider>
   )
 }

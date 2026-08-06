@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { Trophy, Users, History, Dices, Activity, Bluetooth } from 'lucide-react' // Dodano Activity, Bluetooth
+import { Trophy, Users, History, Dices, Activity } from 'lucide-react' // Dodano Activity
 
 const tabs = [
     { to: '/', label: 'Ranking', icon: Trophy, exact: true },
@@ -8,7 +8,6 @@ const tabs = [
     { to: '/history', label: 'Historia', icon: History },
     { to: '/live', label: 'Live', icon: Activity },
     { to: '/players', label: 'Gracze', icon: Users },
-    { to: '/test', label: 'Test', icon: Bluetooth },
 ]
 
 export function Layout() {

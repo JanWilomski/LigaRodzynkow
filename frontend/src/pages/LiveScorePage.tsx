@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useToast } from '@/components/ui/Toast'
-import { Plus, Minus, Save, RotateCcw, UserCheck, Edit2, Lock, Unlock } from 'lucide-react'
+import { Plus, Minus, Save, RotateCcw, UserCheck, Edit2, Lock, Unlock, Bluetooth } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function LiveScorePage() {
@@ -28,6 +28,13 @@ export function LiveScorePage() {
 
     // NOWE: Stan przechowujący informację, kto zagrywa
     const [currentServer, setCurrentServer] = useState<'A' | 'B' | null>(null)
+
+    // --- TRYB PILOTA (pierścień Bluetooth) ---
+    const [remoteMode, setRemoteMode] = useState(false)
+    const [remoteFlash, setRemoteFlash] = useState<string | null>(null)
+    const gestureStart = useRef<{ x: number; y: number } | null>(null)
+    const gestureFired = useRef(false)
+    const flashTimer = useRef<number | null>(null)
 
     // Odbieranie wylosowanych składów
     useEffect(() => {
@@ -59,6 +66,7 @@ export function LiveScorePage() {
             setTeamAIds([])
             setTeamBIds([])
             setCurrentServer(null)
+            setRemoteMode(false)
             navigate('/history')
         },
         onError: (err: Error) => show({ title: 'Błąd', description: err.message, variant: 'error' }),
@@ -104,6 +112,32 @@ export function LiveScorePage() {
             teamAPlayerIds: teamAIds,
             teamBPlayerIds: teamBIds,
         })
+    }
+
+    // --- OBSŁUGA PILOTA ---
+    const buzz = (pattern: number | number[]) => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(pattern)
+    }
+
+    const flashRemote = (msg: string) => {
+        setRemoteFlash(msg)
+        if (flashTimer.current) window.clearTimeout(flashTimer.current)
+        flashTimer.current = window.setTimeout(() => setRemoteFlash(null), 900)
+    }
+
+    useEffect(() => () => { if (flashTimer.current) window.clearTimeout(flashTimer.current) }, [])
+
+    const remoteAction = (dir: 'up' | 'down' | 'left' | 'right' | 'center') => {
+        switch (dir) {
+            case 'up': setScoreA((s) => s + 1); buzz(35); flashRemote('Drużyna A +1'); break
+            case 'down': setScoreA((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna A −1'); break
+            case 'right': setScoreB((s) => s + 1); buzz(35); flashRemote('Drużyna B +1'); break
+            case 'left': setScoreB((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna B −1'); break
+            case 'center':
+                if (isFinished) { buzz([60, 40, 60]); flashRemote('Zapisuję mecz…'); handleSave() }
+                else { buzz(120); flashRemote('Mecz niezakończony') }
+                break
+        }
     }
 
     const toggleTeamA = (id: string) => {
@@ -161,6 +195,48 @@ export function LiveScorePage() {
     return (
         // ZMIANA: Usunięto sztywne h-[calc...] i dodano pb-10 dla naturalnego scrollowania
         <div className="flex flex-col gap-2 sm:gap-4 animate-fade-in max-w-3xl mx-auto pb-10">
+            {/* NAKŁADKA TRYBU PILOTA — przechwytuje gesty wskaźnika z pilota Bluetooth */}
+            {remoteMode && (
+                <>
+                    <div
+                        className="fixed inset-0 z-40"
+                        style={{ touchAction: 'none' }}
+                        onPointerDown={(e) => { gestureStart.current = { x: e.clientX, y: e.clientY }; gestureFired.current = false }}
+                        onPointerMove={(e) => {
+                            e.preventDefault()
+                            if (!gestureStart.current || gestureFired.current) return
+                            const dx = e.clientX - gestureStart.current.x
+                            const dy = e.clientY - gestureStart.current.y
+                            const adx = Math.abs(dx), ady = Math.abs(dy)
+                            if (Math.max(adx, ady) < 40) return // za mały ruch — to nie kierunek z pilota
+                            gestureFired.current = true
+                            if (adx > ady) remoteAction(dx > 0 ? 'right' : 'left')
+                            else remoteAction(dy > 0 ? 'down' : 'up')
+                        }}
+                        onClick={() => { if (!gestureFired.current) remoteAction('center') }}
+                    >
+                        <div className="pointer-events-none absolute inset-x-0 top-24 flex flex-col items-center gap-2 px-4">
+                            <div className="px-3 py-1.5 rounded-full bg-[var(--color-accent)] text-white text-xs font-bold shadow-lg flex items-center gap-2">
+                                <Bluetooth className="size-3.5" /> Tryb pilota aktywny
+                            </div>
+                            <div className="text-[10px] text-[var(--color-muted)] bg-[var(--color-surface)]/90 rounded px-2 py-1 text-center">
+                                ↑ A +1 · ↓ A −1 · → B +1 · ← B −1 · ● zapis
+                            </div>
+                            {remoteFlash && (
+                                <div className="mt-2 px-5 py-3 rounded-xl bg-[var(--color-foreground)] text-[var(--color-background)] text-lg font-black shadow-2xl">
+                                    {remoteFlash}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setRemoteMode(false)}
+                        className="fixed top-4 right-4 z-50 px-3 py-2 rounded-lg bg-[var(--color-danger)] text-white text-xs font-bold shadow-lg"
+                    >
+                        Wyłącz pilota
+                    </button>
+                </>
+            )}
             <div className="flex flex-wrap gap-2 sm:gap-4 justify-between items-center bg-[var(--color-surface)] p-2 sm:p-4 rounded-lg border border-[var(--color-border)] shrink-0">
                 <div className="flex items-center gap-2">
                     <div className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-widest hidden sm:block">Live Score</div>
@@ -170,6 +246,15 @@ export function LiveScorePage() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRemoteMode((v) => !v)}
+                        title="Tryb pilota (Bluetooth)"
+                        className={cn("h-8 w-8 p-0 transition-colors", remoteMode ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]" : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]")}
+                    >
+                        <Bluetooth className="size-4" />
+                    </Button>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -213,13 +298,9 @@ export function LiveScorePage() {
 
                     {/* ZMIANA: Sztywny padding zamiast flex-1 (np. py-24 sm:py-32) dla naturalnego układu */}
                     <button
-                        onPointerDown={(e) => {
-                            e.preventDefault()
-                            if (!isFinished) setScoreA(s => s + 1)
-                        }}
+                        onClick={() => !isFinished && setScoreA(s => s + 1)}
                         disabled={isFinished}
-                        style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
-                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation select-none py-24 sm:py-32"
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreA}</span>
                     </button>
@@ -249,13 +330,9 @@ export function LiveScorePage() {
 
                     {/* ZMIANA: Sztywny padding zamiast flex-1 */}
                     <button
-                        onPointerDown={(e) => {
-                            e.preventDefault()
-                            if (!isFinished) setScoreB(s => s + 1)
-                        }}
+                        onClick={() => !isFinished && setScoreB(s => s + 1)}
                         disabled={isFinished}
-                        style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
-                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation select-none py-24 sm:py-32"
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreB}</span>
                     </button>

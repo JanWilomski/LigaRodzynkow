@@ -82,6 +82,11 @@ export function LiveScorePage() {
         if (isFinished) setIsLocked(false)
     }, [isFinished])
 
+    // Włączenie trybu pilota automatycznie blokuje ekran (i zdejmuje blokadę po wyłączeniu)
+    useEffect(() => {
+        setIsLocked(remoteMode)
+    }, [remoteMode])
+
     useEffect(() => {
         if (isLocked) {
             document.body.style.overflow = 'hidden'
@@ -129,10 +134,10 @@ export function LiveScorePage() {
 
     const remoteAction = (dir: 'up' | 'down' | 'left' | 'right' | 'center') => {
         switch (dir) {
-            case 'up': setScoreA((s) => s + 1); buzz(35); flashRemote('Drużyna A +1'); break
-            case 'down': setScoreA((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna A −1'); break
+            case 'left': setScoreA((s) => s + 1); buzz(35); flashRemote('Drużyna A +1'); break
             case 'right': setScoreB((s) => s + 1); buzz(35); flashRemote('Drużyna B +1'); break
-            case 'left': setScoreB((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna B −1'); break
+            case 'up': setScoreA((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna A −1'); break
+            case 'down': setScoreB((s) => Math.max(0, s - 1)); buzz(20); flashRemote('Drużyna B −1'); break
             case 'center':
                 if (isFinished) { buzz([60, 40, 60]); flashRemote('Zapisuję mecz…'); handleSave() }
                 else { buzz(120); flashRemote('Mecz niezakończony') }
@@ -220,7 +225,7 @@ export function LiveScorePage() {
                                 <Bluetooth className="size-3.5" /> Tryb pilota aktywny
                             </div>
                             <div className="text-[10px] text-[var(--color-muted)] bg-[var(--color-surface)]/90 rounded px-2 py-1 text-center">
-                                ↑ A +1 · ↓ A −1 · → B +1 · ← B −1 · ● zapis
+                                ← A +1 · → B +1 · ↑ A −1 · ↓ B −1 · ● zapis
                             </div>
                             {remoteFlash && (
                                 <div className="mt-2 px-5 py-3 rounded-xl bg-[var(--color-foreground)] text-[var(--color-background)] text-lg font-black shadow-2xl">

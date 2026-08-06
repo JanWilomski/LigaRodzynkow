@@ -7,6 +7,7 @@ import { HistoryPage } from '@/pages/HistoryPage'
 import { LiveScorePage } from '@/pages/LiveScorePage'
 import DrawPage from "@/pages/DrawPage"
 import { PlayerProfilePage } from "@/pages/PlayerProfilePage"
+import { RemoteTestPage } from '@/pages/RemoteTestPage'
 import { ToastProvider } from '@/components/ui/Toast'
 
 const queryClient = new QueryClient({
@@ -31,6 +32,7 @@ export function App() {
               <Route path="draw" element={<DrawPage />} />
               <Route path="players/:id" element={<PlayerProfilePage />} />
               <Route path="live" element={<LiveScorePage />} />
+              <Route path="test" element={<RemoteTestPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

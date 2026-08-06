@@ -213,9 +213,13 @@ export function LiveScorePage() {
 
                     {/* ZMIANA: Sztywny padding zamiast flex-1 (np. py-24 sm:py-32) dla naturalnego układu */}
                     <button
-                        onClick={() => !isFinished && setScoreA(s => s + 1)}
+                        onPointerDown={(e) => {
+                            e.preventDefault()
+                            if (!isFinished) setScoreA(s => s + 1)
+                        }}
                         disabled={isFinished}
-                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
+                        style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation select-none py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreA}</span>
                     </button>
@@ -245,9 +249,13 @@ export function LiveScorePage() {
 
                     {/* ZMIANA: Sztywny padding zamiast flex-1 */}
                     <button
-                        onClick={() => !isFinished && setScoreB(s => s + 1)}
+                        onPointerDown={(e) => {
+                            e.preventDefault()
+                            if (!isFinished) setScoreB(s => s + 1)
+                        }}
                         disabled={isFinished}
-                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation py-24 sm:py-32"
+                        style={{ touchAction: 'manipulation', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+                        className="flex items-center justify-center hover:bg-[var(--color-surface-elevated)] active:bg-[var(--color-border)] transition-colors disabled:opacity-50 touch-manipulation select-none py-24 sm:py-32"
                     >
                         <span className="text-6xl sm:text-8xl md:text-9xl font-black tabular-nums tracking-tighter leading-none">{scoreB}</span>
                     </button>

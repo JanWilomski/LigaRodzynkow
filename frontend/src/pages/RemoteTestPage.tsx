@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
-import { Bluetooth, Keyboard, Gamepad2, Trash2, Copy, AlertTriangle } from 'lucide-react'
+import { Bluetooth, Keyboard, MousePointer2, Gamepad2, Trash2, Copy, AlertTriangle } from 'lucide-react'
 
 interface CapturedEvent {
     n: number
@@ -11,7 +11,7 @@ interface CapturedEvent {
     keyCode: number
     which: number
     mods: string
-    t: number // ms od startu
+    t: number
 }
 
 interface DistinctKey {
@@ -21,63 +21,113 @@ interface DistinctKey {
     count: number
 }
 
-// Klawisze, które przewijają stronę / aktywują elementy — blokujemy, żeby test był stabilny
+interface CapturedPointer {
+    n: number
+    type: string
+    x: number
+    y: number
+    dx: number
+    dy: number
+    button: number
+    t: number
+}
+
 const NEUTRALIZE = new Set([
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
     ' ', 'Spacebar', 'PageUp', 'PageDown', 'Home', 'End', 'Enter', 'Tab',
 ])
 
+const POINTER_TYPES = [
+    'pointerdown', 'pointerup', 'pointermove',
+    'mousedown', 'mouseup', 'mousemove',
+    'click', 'dblclick', 'contextmenu', 'wheel',
+    'touchstart', 'touchmove', 'touchend',
+]
+
 export function RemoteTestPage() {
     const { show } = useToast()
+
+    // --- Klawiatura ---
     const [events, setEvents] = useState<CapturedEvent[]>([])
     const [distinct, setDistinct] = useState<Record<string, DistinctKey>>({})
+
+    // --- Wskaźnik / mysz / dotyk ---
+    const [pointerEvents, setPointerEvents] = useState<CapturedPointer[]>([])
+    const [pointerTypes, setPointerTypes] = useState<Record<string, number>>({})
+    const [lastPointer, setLastPointer] = useState<CapturedPointer | null>(null)
+
+    // --- Gamepad ---
     const [gamepads, setGamepads] = useState<string[]>([])
+
     const [armed, setArmed] = useState(false)
     const counter = useRef(0)
+    const pcounter = useRef(0)
     const startTime = useRef(0)
+    const lastPos = useRef<{ x: number; y: number } | null>(null)
+    const lastMoveLog = useRef(0)
+
+    const stamp = () => {
+        if (startTime.current === 0) startTime.current = performance.now()
+        return Math.round(performance.now() - startTime.current)
+    }
 
     const handleKey = useCallback((e: KeyboardEvent, type: 'keydown' | 'keyup') => {
         if (NEUTRALIZE.has(e.key)) e.preventDefault()
-
-        if (startTime.current === 0) startTime.current = performance.now()
-
-        const mods = [
-            e.ctrlKey && 'Ctrl',
-            e.altKey && 'Alt',
-            e.shiftKey && 'Shift',
-            e.metaKey && 'Meta',
-        ].filter(Boolean).join('+')
-
+        const mods = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Meta']
+            .filter(Boolean).join('+')
         const prettyKey = e.key === ' ' ? 'Space' : e.key
-
         const ev: CapturedEvent = {
-            n: ++counter.current,
-            type,
-            key: prettyKey,
-            code: e.code || '(brak)',
-            keyCode: e.keyCode,
-            which: e.which,
-            mods,
-            t: Math.round(performance.now() - startTime.current),
+            n: ++counter.current, type, key: prettyKey, code: e.code || '(brak)',
+            keyCode: e.keyCode, which: e.which, mods, t: stamp(),
         }
-
         if (type === 'keydown') {
             setDistinct((prev) => {
                 const id = `${prettyKey} · ${ev.code}`
                 const cur = prev[id]
-                return {
-                    ...prev,
-                    [id]: {
-                        key: prettyKey,
-                        code: ev.code,
-                        keyCode: ev.keyCode,
-                        count: (cur?.count ?? 0) + 1,
-                    },
-                }
+                return { ...prev, [id]: { key: prettyKey, code: ev.code, keyCode: ev.keyCode, count: (cur?.count ?? 0) + 1 } }
             })
         }
-
         setEvents((prev) => [ev, ...prev].slice(0, 250))
+    }, [])
+
+    const handlePointer = useCallback((e: Event, type: string) => {
+        if (type === 'contextmenu') e.preventDefault()
+        const any = e as any
+        const pt = any.touches?.[0] ?? any.changedTouches?.[0] ?? any
+        const x = Math.round(pt.clientX ?? 0)
+        const y = Math.round(pt.clientY ?? 0)
+
+        let dx = 0
+        let dy = 0
+        if (type === 'wheel') {
+            dx = Math.round(any.deltaX ?? 0)
+            dy = Math.round(any.deltaY ?? 0)
+        } else if (typeof any.movementX === 'number' && (any.movementX || any.movementY)) {
+            dx = any.movementX
+            dy = any.movementY
+        } else if (lastPos.current) {
+            dx = x - lastPos.current.x
+            dy = y - lastPos.current.y
+        }
+        lastPos.current = { x, y }
+
+        const isMove = type === 'pointermove' || type === 'mousemove' || type === 'touchmove'
+        const now = performance.now()
+        if (isMove) {
+            if (now - lastMoveLog.current < 90) return
+            lastMoveLog.current = now
+            if (dx === 0 && dy === 0) return
+        }
+
+        const pe: CapturedPointer = {
+            n: ++pcounter.current, type, x, y,
+            dx: Math.round(dx), dy: Math.round(dy),
+            button: typeof any.button === 'number' ? any.button : -1,
+            t: stamp(),
+        }
+        setPointerTypes((prev) => ({ ...prev, [type]: (prev[type] ?? 0) + 1 }))
+        setLastPointer(pe)
+        setPointerEvents((prev) => [pe, ...prev].slice(0, 250))
     }, [])
 
     useEffect(() => {
@@ -85,13 +135,20 @@ export function RemoteTestPage() {
         const ku = (e: KeyboardEvent) => handleKey(e, 'keyup')
         window.addEventListener('keydown', kd, { passive: false })
         window.addEventListener('keyup', ku, { passive: false })
+
+        const handlers = POINTER_TYPES.map((t) => {
+            const h = (e: Event) => handlePointer(e, t)
+            window.addEventListener(t, h, { passive: false })
+            return [t, h] as const
+        })
+
         return () => {
             window.removeEventListener('keydown', kd)
             window.removeEventListener('keyup', ku)
+            handlers.forEach(([t, h]) => window.removeEventListener(t, h))
         }
-    }, [handleKey])
+    }, [handleKey, handlePointer])
 
-    // Niektóre piloty widoczne są jako kontroler (Gamepad API działa w Safari iOS)
     useEffect(() => {
         let raf = 0
         const poll = () => {
@@ -99,11 +156,9 @@ export function RemoteTestPage() {
             const active: string[] = []
             for (const p of pads) {
                 if (!p) continue
-                const pressed = p.buttons
-                    .map((b, i) => (b.pressed ? `B${i}` : null))
-                    .filter(Boolean)
-                    .join(' ')
-                active.push(`${p.id}${pressed ? ' → ' + pressed : ''}`)
+                const pressed = p.buttons.map((b, i) => (b.pressed ? `B${i}` : null)).filter(Boolean).join(' ')
+                const axes = p.axes.map((a) => a.toFixed(2)).join(', ')
+                active.push(`${p.id}${pressed ? ' → ' + pressed : ''}${axes ? ' | osie: ' + axes : ''}`)
             }
             setGamepads(active)
             raf = requestAnimationFrame(poll)
@@ -113,17 +168,18 @@ export function RemoteTestPage() {
     }, [])
 
     const clear = () => {
-        setEvents([])
-        setDistinct({})
-        counter.current = 0
-        startTime.current = 0
+        setEvents([]); setDistinct({})
+        setPointerEvents([]); setPointerTypes({}); setLastPointer(null)
+        counter.current = 0; pcounter.current = 0; startTime.current = 0
     }
 
     const buildText = () => JSON.stringify({
         userAgent: navigator.userAgent,
         distinctKeys: Object.values(distinct),
+        pointerTypes,
         gamepads,
-        events: [...events].reverse(),
+        keyEvents: [...events].reverse(),
+        pointerEvents: [...pointerEvents].reverse(),
     }, null, 2)
 
     const copyLog = async () => {
@@ -136,7 +192,8 @@ export function RemoteTestPage() {
     }
 
     const distinctList = Object.values(distinct)
-    const last = events.find((e) => e.type === 'keydown')
+    const pointerTypeList = Object.entries(pointerTypes)
+    const lastKey = events.find((e) => e.type === 'keydown')
 
     return (
         <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
@@ -148,22 +205,21 @@ export function RemoteTestPage() {
                         Diagnostyka pilota Bluetooth
                     </h2>
                     <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                        Sprawdza, co Twój pilot wysyła do przeglądarki na iPhonie.
+                        Łapie klawiaturę <strong>oraz</strong> ruch wskaźnika/myszy — bo Twój pilot działa jak urządzenie wskazujące.
                     </p>
                 </div>
                 <div className="p-6 space-y-4 text-sm text-[var(--color-muted)]">
                     <ol className="list-decimal list-inside space-y-1">
-                        <li>Sparuj pilota z iPhonem w Ustawieniach → Bluetooth.</li>
-                        <li>Jeśli ma tryby, przełącz go w tryb „ebook / klawiatura" (nie „aparat").</li>
-                        <li>Dotknij raz tego ekranu, żeby strona miała fokus, potem klikaj przyciski pilota.</li>
-                        <li>Kliknij „Kopiuj log" i wklej mi wynik w czacie.</li>
+                        <li>Zrób test dwa razy: raz z <strong>wyłączonym</strong>, raz z <strong>włączonym</strong> AssistiveTouch.</li>
+                        <li>Dotknij raz ekranu, potem klikaj po kolei każdy przycisk pilota (góra/dół/lewo/prawo/środek).</li>
+                        <li>Patrz na sekcję <strong>„Wskaźnik / mysz / dotyk"</strong> — czy coś się rusza i jakie są przyrosty dx/dy.</li>
+                        <li>Kliknij „Kopiuj log" i wklej mi wynik z obu prób.</li>
                     </ol>
                     <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
                         <AlertTriangle className="size-5 shrink-0 mt-0.5" />
                         <p className="text-xs">
-                            Jeśli po klikaniu <strong>nic się tu nie pojawia</strong>, pilot najpewniej wysyła
-                            klawisze głośności (tryb aparatu) — tych Safari nie widzi i wtedy się nie da.
-                            Poszukaj kombinacji przełączającej tryb.
+                            Skoro pilot rusza kursorem AssistiveTouch, prawdopodobnie wysyła ruch wskaźnika, a nie klawisze.
+                            Ta wersja testu sprawdza, czy ten ruch dociera do strony — jeśli tak, damy radę zmapować kierunki na punkty.
                         </p>
                     </div>
                     <button
@@ -175,29 +231,30 @@ export function RemoteTestPage() {
                 </div>
             </div>
 
-            {/* Ostatnie zdarzenie */}
+            {/* Ostatni wskaźnik */}
             <div className="rounded-lg border-2 border-[var(--color-accent)] bg-[var(--color-surface)] p-6 text-center">
                 <div className="text-[10px] uppercase tracking-[0.2em] font-black text-[var(--color-muted)] mb-3">
-                    Ostatni klawisz
+                    Ostatnie zdarzenie wskaźnika
                 </div>
-                {last ? (
+                {lastPointer ? (
                     <div className="space-y-1">
-                        <div className="text-4xl font-black tabular-nums tracking-tight break-all">{last.key}</div>
-                        <div className="text-xs text-[var(--color-muted)] font-mono">
-                            code: {last.code} · keyCode: {last.keyCode}{last.mods && ` · ${last.mods}`}
+                        <div className="text-3xl font-black tracking-tight break-all">{lastPointer.type}</div>
+                        <div className="text-sm text-[var(--color-muted)] font-mono">
+                            pozycja: {lastPointer.x}, {lastPointer.y} &nbsp;·&nbsp; ruch dx: <strong>{lastPointer.dx}</strong>, dy: <strong>{lastPointer.dy}</strong>
+                            {lastPointer.button >= 0 && ` · przycisk: ${lastPointer.button}`}
                         </div>
                     </div>
                 ) : (
-                    <div className="text-2xl font-bold text-[var(--color-subtle)]">— czekam —</div>
+                    <div className="text-2xl font-bold text-[var(--color-subtle)]">— brak ruchu wskaźnika —</div>
                 )}
             </div>
 
-            {/* Wykryte klawisze */}
+            {/* Typy zdarzeń wskaźnika */}
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
                 <div className="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
                     <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <Keyboard className="size-4 text-[var(--color-accent)]" />
-                        Wykryte klawisze ({distinctList.length})
+                        <MousePointer2 className="size-4 text-[var(--color-accent)]" />
+                        Wskaźnik / mysz / dotyk ({pointerTypeList.length} typów)
                     </h3>
                     <div className="flex gap-2">
                         <Button size="sm" variant="ghost" onClick={clear} className="h-8">
@@ -209,18 +266,56 @@ export function RemoteTestPage() {
                     </div>
                 </div>
                 <div className="p-4">
-                    {distinctList.length === 0 ? (
+                    {pointerTypeList.length === 0 ? (
                         <p className="text-sm text-[var(--color-muted)] text-center py-4">
-                            Brak wykrytych klawiszy. Kliknij przycisk na pilocie.
+                            Brak zdarzeń wskaźnika. Kliknij przyciski pilota.
+                        </p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {pointerTypeList.map(([type, count]) => (
+                                <div key={type} className="px-3 py-2 rounded-md bg-[var(--color-background)] border border-[var(--color-border)]">
+                                    <div className="text-sm font-bold font-mono">{type}</div>
+                                    <div className="text-[10px] text-[var(--color-muted)]">×{count}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {pointerEvents.length > 0 && (
+                        <div className="mt-4 max-h-64 overflow-y-auto divide-y divide-[var(--color-border)] font-mono text-xs">
+                            {pointerEvents.map((e) => (
+                                <div key={e.n} className="flex items-center gap-3 px-1 py-1.5">
+                                    <span className="text-[var(--color-subtle)] w-10 shrink-0">#{e.n}</span>
+                                    <span className="font-bold w-28 shrink-0 truncate">{e.type}</span>
+                                    <span className="text-[var(--color-muted)] shrink-0">dx:{e.dx} dy:{e.dy}</span>
+                                    <span className="text-[var(--color-subtle)] truncate">@{e.x},{e.y}{e.button >= 0 ? ` b${e.button}` : ''}</span>
+                                    <span className="text-[var(--color-subtle)] ml-auto shrink-0">{e.t}ms</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Klawiatura */}
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[var(--color-border)]">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Keyboard className="size-4 text-[var(--color-accent)]" />
+                        Klawiatura ({distinctList.length} klawiszy)
+                        {lastKey && <span className="text-xs font-normal text-[var(--color-muted)] font-mono ml-1">ostatni: {lastKey.key} ({lastKey.keyCode})</span>}
+                    </h3>
+                </div>
+                <div className="p-4">
+                    {distinctList.length === 0 ? (
+                        <p className="text-sm text-[var(--color-muted)] text-center py-2">
+                            Brak klawiszy (to spodziewane, jeśli pilot działa jako wskaźnik).
                         </p>
                     ) : (
                         <div className="flex flex-wrap gap-2">
                             {distinctList.map((d) => (
                                 <div key={`${d.key}-${d.code}`} className="px-3 py-2 rounded-md bg-[var(--color-background)] border border-[var(--color-border)]">
                                     <div className="text-sm font-bold">{d.key}</div>
-                                    <div className="text-[10px] text-[var(--color-muted)] font-mono">
-                                        {d.code} · {d.keyCode} · ×{d.count}
-                                    </div>
+                                    <div className="text-[10px] text-[var(--color-muted)] font-mono">{d.code} · {d.keyCode} · ×{d.count}</div>
                                 </div>
                             ))}
                         </div>
@@ -238,37 +333,11 @@ export function RemoteTestPage() {
                 </div>
                 <div className="p-4 text-sm">
                     {gamepads.length === 0 ? (
-                        <p className="text-[var(--color-muted)] text-center py-2">
-                            Żaden kontroler nie jest widoczny. (To normalne, jeśli pilot działa jako klawiatura.)
-                        </p>
+                        <p className="text-[var(--color-muted)] text-center py-2">Żaden kontroler nie jest widoczny.</p>
                     ) : (
                         <ul className="space-y-1 font-mono text-xs">
                             {gamepads.map((g, i) => <li key={i} className="break-all">{g}</li>)}
                         </ul>
-                    )}
-                </div>
-            </div>
-
-            {/* Log zdarzeń */}
-            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-                <div className="px-6 py-4 border-b border-[var(--color-border)]">
-                    <h3 className="text-sm font-semibold">Log zdarzeń ({events.length})</h3>
-                </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-[var(--color-border)] font-mono text-xs">
-                    {events.length === 0 ? (
-                        <p className="text-sm text-[var(--color-muted)] text-center py-6 font-sans">Brak zdarzeń.</p>
-                    ) : (
-                        events.map((e) => (
-                            <div key={e.n} className="flex items-center gap-3 px-4 py-2">
-                                <span className="text-[var(--color-subtle)] w-10 shrink-0">#{e.n}</span>
-                                <span className={e.type === 'keydown' ? 'text-[var(--color-success)] w-16 shrink-0' : 'text-[var(--color-subtle)] w-16 shrink-0'}>
-                                    {e.type === 'keydown' ? '▼ down' : '▲ up'}
-                                </span>
-                                <span className="font-bold w-24 shrink-0 truncate">{e.key}</span>
-                                <span className="text-[var(--color-muted)] truncate">{e.code} · {e.keyCode}{e.mods && ` · ${e.mods}`}</span>
-                                <span className="text-[var(--color-subtle)] ml-auto shrink-0">{e.t}ms</span>
-                            </div>
-                        ))
                     )}
                 </div>
             </div>
